@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Tailwind v4 uses CSS-first config (no tailwind.config.ts by this project).
+   This is the v4-native equivalent of `darkMode: 'class'`: dark: utilities
+   apply based on a `.dark` class on an ancestor (set by next-themes),
+   instead of the `prefers-color-scheme` media query. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -12,11 +18,9 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 body {
