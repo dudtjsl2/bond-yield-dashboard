@@ -8,13 +8,7 @@ export function buildRatesWorkbook(rows: Row[], instruments: Instrument[]): Buff
 
   const sheetRows = rows
     .slice()
-    .sort((a, b) => {
-      const dateCompare = a.date.localeCompare(b.date)
-      if (dateCompare !== 0) return dateCompare
-      const aLabel = labelByCode.get(a.instrument) ?? a.instrument
-      const bLabel = labelByCode.get(b.instrument) ?? b.instrument
-      return aLabel.localeCompare(bLabel)
-    })
+    .sort((a, b) => a.date.localeCompare(b.date) || a.instrument.localeCompare(b.instrument))
     .map((r) => ({
       날짜: r.date,
       지표: labelByCode.get(r.instrument) ?? r.instrument,

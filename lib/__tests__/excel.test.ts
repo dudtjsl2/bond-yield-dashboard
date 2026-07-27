@@ -15,6 +15,7 @@ describe('buildRatesWorkbook', () => {
     const data = XLSX.utils.sheet_to_json(sheet)
 
     expect(data).toHaveLength(2)
-    expect(data[0]).toMatchObject({ 날짜: '2026-07-27', 금리: 2.85 })
+    expect(data[0]).toMatchObject({ 날짜: '2026-07-27', 금리: 3.5 })
+    expect(data[1]).toMatchObject({ 날짜: '2026-07-27', 금리: 2.85 })
   })
 })
