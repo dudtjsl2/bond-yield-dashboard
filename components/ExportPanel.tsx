@@ -15,6 +15,7 @@ export function ExportPanel({ selectedInstruments, period }: Props) {
   const [message, setMessage] = useState('')
 
   const excelParams = new URLSearchParams({ instruments: selectedInstruments.join(','), period })
+  const hasSelection = selectedInstruments.length > 0
 
   async function handleSend() {
     setStatus('sending')
@@ -41,12 +42,23 @@ export function ExportPanel({ selectedInstruments, period }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded border border-gray-200 p-4 dark:border-gray-700">
-      <a
-        href={`/api/export/excel?${excelParams.toString()}`}
-        className="rounded bg-green-600 px-3 py-1 text-sm text-white"
-      >
-        📥 엑셀 다운로드
-      </a>
+      {hasSelection ? (
+        <a
+          href={`/api/export/excel?${excelParams.toString()}`}
+          className="rounded bg-green-600 px-3 py-1 text-sm text-white"
+        >
+          📥 엑셀 다운로드
+        </a>
+      ) : (
+        <button
+          type="button"
+          disabled
+          aria-disabled="true"
+          className="cursor-not-allowed rounded bg-green-600 px-3 py-1 text-sm text-white opacity-50"
+        >
+          📥 엑셀 다운로드
+        </button>
+      )}
 
       <label htmlFor="export-email" className="sr-only">
         이메일 주소

@@ -37,9 +37,11 @@ export function Dashboard({ instruments, initialRows, initialSummary, initialLas
         throw new Error(json.error ?? '데이터를 불러오지 못했습니다.')
       }
       setRows(json.rows ?? [])
-    } catch (err) {
-      // Keep whatever data was already displayed; just surface the error.
-      setError(err instanceof Error ? err.message : '데이터를 불러오지 못했습니다.')
+    } catch {
+      // Keep whatever data was already displayed; always surface a Korean
+      // user-facing message rather than a raw JS error (e.g. "Failed to
+      // fetch") that a network-level failure would otherwise expose.
+      setError('데이터를 불러오지 못했습니다.')
     } finally {
       setLoading(false)
     }

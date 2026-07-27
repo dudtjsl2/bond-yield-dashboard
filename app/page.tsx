@@ -16,11 +16,19 @@ export default async function Page() {
     getLastUpdatedAt(),
   ])
 
+  // Invariant: only show the AI summary as "오늘의 해설" if it was generated
+  // for the same date as the latest rate data (lastUpdated). getLatestSummary()
+  // always returns the newest row regardless of date, so if today's cron run
+  // failed to generate a summary (or it's a non-business day), summary.date
+  // will be older than lastUpdated — in that case pass null so SummaryBox
+  // falls back to its "준비하지 못했어요" message instead of showing stale text.
+  const todaysSummary = summary && summary.date === lastUpdated ? summary : null
+
   return (
     <Dashboard
       instruments={INSTRUMENTS}
       initialRows={rows}
-      initialSummary={summary}
+      initialSummary={todaysSummary}
       initialLastUpdated={lastUpdated}
     />
   )

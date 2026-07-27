@@ -59,7 +59,10 @@ describe('Dashboard refetch error handling', () => {
     fireEvent.click(screen.getByLabelText('CD금리 91일'))
 
     await waitFor(() => {
-      expect(screen.getByText('network down')).toBeInTheDocument()
+      // Network-level failures must surface a Korean fallback message, not
+      // the raw JS error text (e.g. "network down"/"Failed to fetch").
+      expect(screen.getByText('데이터를 불러오지 못했습니다.')).toBeInTheDocument()
+      expect(screen.queryByText('network down')).not.toBeInTheDocument()
     })
   })
 
