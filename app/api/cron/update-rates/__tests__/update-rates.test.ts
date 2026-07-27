@@ -10,6 +10,7 @@ vi.mock('@/lib/supabase', () => ({
 vi.mock('@/lib/ecos', () => ({
   fetchEcosRate: vi.fn(async (instrument) => {
     if (instrument.code === 'cd_91d') return null // 예: 해당 지표만 데이터 없음
+    if (instrument.code === 'msb_1y') throw new Error('ECOS API error') // 예: 해당 지표만 호출 실패
     return { date: '20260727', value: 3.0 }
   }),
 }))
@@ -41,5 +42,19 @@ describe('GET /api/cron/update-rates', () => {
     expect(body.skipped).toContain('cd_91d')
     expect(fromMock).toHaveBeenCalledWith('bond_yields')
     expect(upsertMock).toHaveBeenCalled()
+  })
+
+  it('isolates a thrown error from fetchEcosRate to that instrument and still processes the rest', async () => {
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.skipped).toContain('msb_1y')
+    expect(body.updated).toContain('treasury_3y')
+    expect(body.updated).not.toContain('msb_1y')
   })
 })
