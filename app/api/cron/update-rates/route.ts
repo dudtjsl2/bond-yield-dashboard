@@ -78,8 +78,16 @@ export async function GET(req: Request) {
       })
 
       const summaryText = await generateDailySummary(summaryRows, isoDate)
-      await supabase.from('daily_summary').upsert({ date: isoDate, summary_text: summaryText })
-      summaryStatus = 'ok'
+      const { error: summaryError } = await supabase
+        .from('daily_summary')
+        .upsert({ date: isoDate, summary_text: summaryText })
+
+      if (summaryError) {
+        console.error('AI 요약 저장 실패:', summaryError)
+        summaryStatus = 'failed'
+      } else {
+        summaryStatus = 'ok'
+      }
     } catch (err) {
       console.error('AI 요약 생성 실패:', err)
       summaryStatus = 'failed'

@@ -83,4 +83,25 @@ describe('GET /api/cron/update-rates', () => {
     const body = await res.json()
     expect(['ok', 'failed', 'skipped']).toContain(body.summaryStatus)
   })
+
+  it('sets summaryStatus to failed when the daily_summary upsert resolves with an error', async () => {
+    upsertMock.mockImplementation((payload: Record<string, unknown>) => {
+      if ('summary_text' in payload) {
+        return Promise.resolve({ error: { message: 'permission denied for table daily_summary' } })
+      }
+      return Promise.resolve({ error: null })
+    })
+
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.summaryStatus).toBe('failed')
+
+    upsertMock.mockResolvedValue({ error: null })
+  })
 })
