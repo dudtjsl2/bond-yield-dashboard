@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { INSTRUMENTS } from '@/lib/instruments'
 import { fetchEcosRate } from '@/lib/ecos'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { generateDailySummary } from '@/lib/openrouter'
 
 function todayKstYYYYMMDD(): string {
   const now = new Date()
@@ -48,9 +49,47 @@ export async function GET(req: Request) {
     }
   }
 
+  const isoDate = `${dateYYYYMMDD.slice(0, 4)}-${dateYYYYMMDD.slice(4, 6)}-${dateYYYYMMDD.slice(6, 8)}`
+  let summaryStatus: 'ok' | 'failed' | 'skipped' = 'skipped'
+
+  if (updated.length > 0) {
+    try {
+      const { data: todayRows } = await supabase
+        .from('bond_yields')
+        .select('instrument, yield_pct')
+        .eq('date', isoDate)
+
+      const { data: yesterdayRows } = await supabase
+        .from('bond_yields')
+        .select('instrument, yield_pct')
+        .lt('date', isoDate)
+        .order('date', { ascending: false })
+        .limit(INSTRUMENTS.length)
+
+      const prevByInstrument = new Map((yesterdayRows ?? []).map((r) => [r.instrument, r.yield_pct]))
+      const summaryRows = (todayRows ?? []).map((r) => {
+        const inst = INSTRUMENTS.find((i) => i.code === r.instrument)
+        return {
+          instrument: r.instrument,
+          label: inst?.label ?? r.instrument,
+          yield_pct: r.yield_pct,
+          prevYieldPct: prevByInstrument.get(r.instrument) ?? null,
+        }
+      })
+
+      const summaryText = await generateDailySummary(summaryRows, isoDate)
+      await supabase.from('daily_summary').upsert({ date: isoDate, summary_text: summaryText })
+      summaryStatus = 'ok'
+    } catch (err) {
+      console.error('AI 요약 생성 실패:', err)
+      summaryStatus = 'failed'
+    }
+  }
+
   return NextResponse.json({
-    date: `${dateYYYYMMDD.slice(0, 4)}-${dateYYYYMMDD.slice(4, 6)}-${dateYYYYMMDD.slice(6, 8)}`,
+    date: isoDate,
     updated,
     skipped,
+    summaryStatus,
   })
 }

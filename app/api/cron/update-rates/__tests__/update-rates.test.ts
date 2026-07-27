@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const upsertMock = vi.fn().mockResolvedValue({ error: null })
-const fromMock = vi.fn().mockReturnValue({ upsert: upsertMock })
+
+const limitMock = vi.fn().mockResolvedValue({ data: [], error: null })
+const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
+const ltMock = vi.fn().mockReturnValue({ order: orderMock })
+const eqMock = vi.fn().mockResolvedValue({ data: [], error: null })
+const selectMock = vi.fn().mockReturnValue({ eq: eqMock, lt: ltMock })
+
+const fromMock = vi.fn().mockReturnValue({ upsert: upsertMock, select: selectMock })
 
 vi.mock('@/lib/supabase', () => ({
   getSupabaseAdmin: () => ({ from: fromMock }),
@@ -15,11 +22,20 @@ vi.mock('@/lib/ecos', () => ({
   }),
 }))
 
+vi.mock('@/lib/openrouter', () => ({
+  generateDailySummary: vi.fn().mockResolvedValue('오늘의 요약입니다.'),
+}))
+
 describe('GET /api/cron/update-rates', () => {
   beforeEach(() => {
     process.env.CRON_SECRET = 'test-secret'
     upsertMock.mockClear()
     fromMock.mockClear()
+    selectMock.mockClear()
+    eqMock.mockClear()
+    ltMock.mockClear()
+    orderMock.mockClear()
+    limitMock.mockClear()
   })
 
   it('rejects requests without the correct bearer token', async () => {
@@ -56,5 +72,15 @@ describe('GET /api/cron/update-rates', () => {
     expect(body.skipped).toContain('msb_1y')
     expect(body.updated).toContain('treasury_3y')
     expect(body.updated).not.toContain('msb_1y')
+  })
+
+  it('includes summaryStatus in the response', async () => {
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    const res = await GET(req)
+    const body = await res.json()
+    expect(['ok', 'failed', 'skipped']).toContain(body.summaryStatus)
   })
 })
