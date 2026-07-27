@@ -25,7 +25,7 @@ export async function generateDailySummary(rows: SummaryRow[], dateIso: string):
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-3.5-haiku',
+      model: 'anthropic/claude-haiku-4.5',
       messages: [{ role: 'user', content: prompt }],
     }),
   })
