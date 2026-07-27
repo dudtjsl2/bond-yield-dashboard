@@ -24,14 +24,22 @@ export function Dashboard({ instruments, initialRows, initialSummary, initialLas
   const [period, setPeriod] = useState<Period>('5y')
   const [rows, setRows] = useState<Row[]>(initialRows)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function refetch(nextSelected: string[], nextPeriod: Period) {
     setLoading(true)
+    setError(null)
     try {
       const params = new URLSearchParams({ instruments: nextSelected.join(','), period: nextPeriod })
       const res = await fetch(`/api/rates?${params.toString()}`)
       const json = await res.json()
+      if (!res.ok || json.error) {
+        throw new Error(json.error ?? '데이터를 불러오지 못했습니다.')
+      }
       setRows(json.rows ?? [])
+    } catch (err) {
+      // Keep whatever data was already displayed; just surface the error.
+      setError(err instanceof Error ? err.message : '데이터를 불러오지 못했습니다.')
     } finally {
       setLoading(false)
     }
@@ -58,6 +66,7 @@ export function Dashboard({ instruments, initialRows, initialSummary, initialLas
       <PeriodSelector value={period} onChange={handlePeriodChange} />
 
       {loading ? <p className="text-sm text-gray-500">불러오는 중...</p> : <TrendChart rows={rows} instruments={instruments} />}
+      {error ? <p className="text-sm text-red-500">{error}</p> : null}
 
       <SummaryBox summary={initialSummary} />
 
