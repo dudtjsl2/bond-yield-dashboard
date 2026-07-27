@@ -2,6 +2,14 @@ import { getSupabaseAdmin } from './supabase'
 
 export type Period = '1m' | '1y' | '5y' | 'all'
 
+// Validates untrusted input (query params, JSON body) against the known
+// Period values before it is ever used in filenames/headers, to avoid
+// reflecting arbitrary strings (e.g. containing `"`) into response headers
+// such as Content-Disposition.
+export function parsePeriod(input: string | null | undefined): Period {
+  return input === '1m' || input === '1y' || input === 'all' ? input : '5y'
+}
+
 function periodStartDate(period: Period): string | null {
   if (period === 'all') return null
   const now = new Date()

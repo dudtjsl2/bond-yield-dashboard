@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getRateSeries, type Period } from '@/lib/rates'
+import { getRateSeries, parsePeriod } from '@/lib/rates'
 import { INSTRUMENTS } from '@/lib/instruments'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const instrumentsParam = searchParams.get('instruments')
-  const period = (searchParams.get('period') as Period) ?? '5y'
+  const period = parsePeriod(searchParams.get('period'))
 
   const validCodes = new Set(INSTRUMENTS.map((i) => i.code))
   const codes = (instrumentsParam ? instrumentsParam.split(',') : INSTRUMENTS.map((i) => i.code)).filter((c) =>

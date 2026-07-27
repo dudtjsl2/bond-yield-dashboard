@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getRateSeries, type Period } from '@/lib/rates'
+import { getRateSeries, parsePeriod } from '@/lib/rates'
 import { buildRatesWorkbook } from '@/lib/excel'
 import { sendRatesEmail } from '@/lib/resend'
 import { checkEmailRateLimit, recordEmailSend } from '@/lib/rateLimit'
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null)
   const email = body?.email
   const instruments: string[] = body?.instruments ?? []
-  const period: Period = body?.period ?? '5y'
+  const period = parsePeriod(body?.period)
 
   if (typeof email !== 'string' || !EMAIL_REGEX.test(email)) {
     return NextResponse.json({ ok: false, error: '올바른 이메일 주소를 입력해주세요.' }, { status: 400 })
@@ -35,8 +35,13 @@ export async function POST(req: Request) {
   try {
     const rows = await getRateSeries(codes, period)
     const buffer = buildRatesWorkbook(rows, INSTRUMENTS)
-    await sendRatesEmail(email, buffer, `bond-yields-${period}.xlsx`)
-    await recordEmailSend(ip)
+    try {
+      await sendRatesEmail(email, buffer, `bond-yields-${period}.xlsx`)
+    } finally {
+      // Record the attempt whether or not the send succeeded, so a caller
+      // can't retry-flood past the rate limit just by causing Resend to fail.
+      await recordEmailSend(ip)
+    }
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('이메일 발송 실패:', err)

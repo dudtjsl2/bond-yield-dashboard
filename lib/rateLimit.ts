@@ -22,5 +22,8 @@ export async function checkEmailRateLimit(ipAddress: string, maxPerHour = 5) {
 
 export async function recordEmailSend(ipAddress: string) {
   const supabase = getSupabaseAdmin()
-  await supabase.from('email_send_log').insert({ ip_address: ipAddress })
+  const { error } = await supabase.from('email_send_log').insert({ ip_address: ipAddress })
+  if (error) {
+    console.error('이메일 발송 기록 실패:', error)
+  }
 }

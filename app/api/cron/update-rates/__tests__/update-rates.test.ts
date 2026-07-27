@@ -45,6 +45,16 @@ describe('GET /api/cron/update-rates', () => {
     expect(res.status).toBe(401)
   })
 
+  it('rejects a request whose header matches "Bearer undefined" when CRON_SECRET is not set', async () => {
+    delete process.env.CRON_SECRET
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer undefined' },
+    })
+    const res = await GET(req)
+    expect(res.status).toBe(401)
+  })
+
   it('upserts rows for instruments with data and skips those without', async () => {
     const { GET } = await import('../route')
     const req = new Request('http://localhost/api/cron/update-rates', {

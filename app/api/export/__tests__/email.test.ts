@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/lib/rates', () => ({
-  getRateSeries: vi.fn().mockResolvedValue([{ date: '2026-07-27', instrument: 'treasury_3y', yield_pct: 2.85 }]),
-}))
+vi.mock('@/lib/rates', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/rates')>('@/lib/rates')
+  return {
+    ...actual,
+    getRateSeries: vi.fn().mockResolvedValue([{ date: '2026-07-27', instrument: 'treasury_3y', yield_pct: 2.85 }]),
+  }
+})
 vi.mock('@/lib/resend', () => ({ sendRatesEmail: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/rateLimit', () => ({
   checkEmailRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 4 }),
@@ -46,5 +50,27 @@ describe('POST /api/export/email', () => {
     const { POST } = await import('../email/route')
     const res = await POST(makeRequest({ email: 'user@example.com', instruments: ['treasury_3y'], period: '1y' }))
     expect(res.status).toBe(429)
+  })
+
+  it('falls back to the 5y period when given an invalid period string', async () => {
+    const { getRateSeries } = await import('@/lib/rates')
+    const { POST } = await import('../email/route')
+    const res = await POST(
+      makeRequest({ email: 'user@example.com', instruments: ['treasury_3y'], period: '1y"; DROP TABLE' })
+    )
+    expect(res.status).toBe(200)
+    expect(vi.mocked(getRateSeries)).toHaveBeenCalledWith(['treasury_3y'], '5y')
+  })
+
+  it('records the send attempt even when sendRatesEmail throws, to prevent retry-flood past the rate limit', async () => {
+    const { sendRatesEmail } = await import('@/lib/resend')
+    const { recordEmailSend } = await import('@/lib/rateLimit')
+    vi.mocked(sendRatesEmail).mockRejectedValueOnce(new Error('resend down'))
+
+    const { POST } = await import('../email/route')
+    const res = await POST(makeRequest({ email: 'user@example.com', instruments: ['treasury_3y'], period: '1y' }))
+
+    expect(res.status).toBe(500)
+    expect(recordEmailSend).toHaveBeenCalledWith('1.2.3.4')
   })
 })

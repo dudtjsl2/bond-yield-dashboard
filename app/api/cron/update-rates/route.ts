@@ -15,7 +15,8 @@ function todayKstYYYYMMDD(): string {
 
 export async function GET(req: Request) {
   const auth = req.headers.get('authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const secret = process.env.CRON_SECRET
+  if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -59,12 +60,21 @@ export async function GET(req: Request) {
         .select('instrument, yield_pct')
         .eq('date', isoDate)
 
-      const { data: yesterdayRows } = await supabase
+      // Find the single most recent prior date first, then fetch all rows for
+      // exactly that date. Avoids mixing rows from more than one calendar
+      // date (which could otherwise let an older date's value silently
+      // override a newer one for a given instrument in the Map below).
+      const { data: prevDateRows } = await supabase
         .from('bond_yields')
-        .select('instrument, yield_pct')
+        .select('date')
         .lt('date', isoDate)
         .order('date', { ascending: false })
-        .limit(INSTRUMENTS.length)
+        .limit(1)
+
+      const prevDate = prevDateRows?.[0]?.date ?? null
+      const { data: yesterdayRows } = prevDate
+        ? await supabase.from('bond_yields').select('instrument, yield_pct').eq('date', prevDate)
+        : { data: [] as { instrument: string; yield_pct: number }[] }
 
       const prevByInstrument = new Map((yesterdayRows ?? []).map((r) => [r.instrument, r.yield_pct]))
       const summaryRows = (todayRows ?? []).map((r) => {
