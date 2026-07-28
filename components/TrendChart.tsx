@@ -14,7 +14,7 @@ const COLORS = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2'
 
 export function TrendChart({ rows, instruments }: Props) {
   if (rows.length === 0) {
-    return <p className="text-sm text-gray-500 dark:text-gray-400">표시할 데이터가 없습니다.</p>
+    return <p className="text-sm text-muted">표시할 데이터가 없습니다.</p>
   }
 
   const byDate = new Map<string, Record<string, number | string>>()

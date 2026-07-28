@@ -33,30 +33,34 @@ export function SubscribePanel() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded border border-gray-200 p-4 dark:border-gray-700 sm:flex-row sm:flex-wrap sm:items-center">
-      <label htmlFor="subscribe-email" className="sr-only">
-        이메일 주소
-      </label>
-      <input
-        id="subscribe-email"
-        type="email"
-        placeholder="이메일 주소 입력"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        aria-label="이메일 주소"
-        className="w-full rounded border border-gray-300 px-2 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 sm:w-auto sm:flex-1 sm:py-1"
-      />
-      <button
-        type="button"
-        onClick={handleSubscribe}
-        disabled={status === 'sending' || !email}
-        className="rounded bg-blue-600 px-3 py-2 text-sm text-white disabled:opacity-50 sm:py-1"
-      >
-        매영업일 자동 발송 구독하기
-      </button>
+    <div className="rounded-2xl bg-card p-5 shadow-sm">
+      <h2 className="mb-1 text-sm font-semibold text-muted">매영업일 자동 발송 구독</h2>
+      <p className="mb-3 text-[13px] text-muted">주말·공휴일을 제외한 매영업일 오후 5시에 전 지표 데이터를 이메일로 보내드려요.</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <label htmlFor="subscribe-email" className="sr-only">
+          이메일 주소
+        </label>
+        <input
+          id="subscribe-email"
+          type="email"
+          placeholder="이메일 주소 입력"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-label="이메일 주소"
+          className="w-full rounded-xl bg-background px-3 py-2 text-sm outline-none ring-1 ring-inset ring-black/5 focus:ring-2 focus:ring-accent sm:flex-1 dark:ring-white/10"
+        />
+        <button
+          type="button"
+          onClick={handleSubscribe}
+          disabled={status === 'sending' || !email}
+          className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
+        >
+          매영업일 자동 발송 구독하기
+        </button>
+      </div>
 
       {message && (
-        <span className={status === 'error' ? 'text-sm text-red-600' : 'text-sm text-green-600'}>{message}</span>
+        <p className={status === 'error' ? 'mt-2 text-sm text-red-500' : 'mt-2 text-sm text-accent'}>{message}</p>
       )}
     </div>
   )

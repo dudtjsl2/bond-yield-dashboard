@@ -25,8 +25,8 @@ export function PeriodSelector({ value, onChange }: Props) {
           onClick={() => onChange(opt.value)}
           className={
             value === opt.value
-              ? 'rounded bg-blue-600 px-3 py-1 text-sm text-white'
-              : 'rounded border border-gray-300 px-3 py-1 text-sm dark:border-gray-600'
+              ? 'rounded-full bg-accent px-3.5 py-1.5 text-sm font-medium text-white transition'
+              : 'rounded-full bg-card px-3.5 py-1.5 text-sm font-medium text-muted shadow-sm transition hover:opacity-80'
           }
         >
           {opt.label}

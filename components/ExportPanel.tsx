@@ -41,51 +41,57 @@ export function ExportPanel({ selectedInstruments, period }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded border border-gray-200 p-4 dark:border-gray-700 sm:flex-row sm:flex-wrap sm:items-center">
-      {hasSelection ? (
-        <a
-          href={`/api/export/excel?${excelParams.toString()}`}
-          className="rounded bg-green-600 px-3 py-2 text-center text-sm text-white sm:py-1"
-        >
-          엑셀 다운로드
-        </a>
-      ) : (
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          className="cursor-not-allowed rounded bg-green-600 px-3 py-2 text-sm text-white opacity-50 sm:py-1"
-        >
-          엑셀 다운로드
-        </button>
-      )}
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-1 sm:items-center">
-        <label htmlFor="export-email" className="sr-only">
-          이메일 주소
-        </label>
-        <input
-          id="export-email"
-          type="email"
-          placeholder="이메일 주소 입력"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          aria-label="이메일 주소"
-          className="w-full rounded border border-gray-300 px-2 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 sm:w-auto sm:flex-1 sm:py-1"
-        />
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={status === 'sending' || !email}
-          className="rounded bg-blue-600 px-3 py-2 text-sm text-white disabled:opacity-50 sm:py-1"
-        >
-          이메일로 받기
-        </button>
+    <div className="flex flex-col gap-3">
+      <div className="rounded-2xl bg-card p-5 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold text-muted">엑셀 다운로드</h2>
+        {hasSelection ? (
+          <a
+            href={`/api/export/excel?${excelParams.toString()}`}
+            className="inline-flex items-center justify-center rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+          >
+            선택한 지표 엑셀로 받기
+          </a>
+        ) : (
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            className="cursor-not-allowed rounded-full bg-accent px-4 py-2 text-sm font-medium text-white opacity-40"
+          >
+            선택한 지표 엑셀로 받기
+          </button>
+        )}
       </div>
 
-      {message && (
-        <span className={status === 'error' ? 'text-sm text-red-600' : 'text-sm text-green-600'}>{message}</span>
-      )}
+      <div className="rounded-2xl bg-card p-5 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold text-muted">이메일로 받기</h2>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label htmlFor="export-email" className="sr-only">
+            이메일 주소
+          </label>
+          <input
+            id="export-email"
+            type="email"
+            placeholder="이메일 주소 입력"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            aria-label="이메일 주소"
+            className="w-full rounded-xl bg-background px-3 py-2 text-sm outline-none ring-1 ring-inset ring-black/5 focus:ring-2 focus:ring-accent sm:flex-1 dark:ring-white/10"
+          />
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={status === 'sending' || !email}
+            className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
+          >
+            이메일로 받기
+          </button>
+        </div>
+
+        {message && (
+          <p className={status === 'error' ? 'mt-2 text-sm text-red-500' : 'mt-2 text-sm text-accent'}>{message}</p>
+        )}
+      </div>
     </div>
   )
 }

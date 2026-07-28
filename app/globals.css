@@ -7,13 +7,19 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f2f4f6;
+  --foreground: #191f28;
+  --card: #ffffff;
+  --accent: #3182f6;
+  --muted: #8b95a1;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-muted: var(--muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -21,6 +27,9 @@
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --card: #17181a;
+  --accent: #4593fc;
+  --muted: #8b95a1;
 }
 
 body {

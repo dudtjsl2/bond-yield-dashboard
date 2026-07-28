@@ -59,17 +59,21 @@ export function Dashboard({ instruments, initialRows, initialSummary, initialLas
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-3 sm:p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-base font-bold sm:text-xl">📈 국고채·통안채·CD 금리 대시보드</h1>
+    <div className="mx-auto max-w-4xl space-y-3 p-3 sm:p-4">
+      <div className="flex items-center justify-between gap-2 py-1">
+        <h1 className="text-lg font-bold sm:text-xl">국고채·통안채·CD 금리 대시보드</h1>
         <ThemeToggle />
       </div>
 
-      <InstrumentSelector instruments={instruments} selected={selected} onChange={handleInstrumentsChange} />
-      <PeriodSelector value={period} onChange={handlePeriodChange} />
+      <div className="rounded-2xl bg-card p-5 shadow-sm">
+        <div className="mb-4 flex flex-col gap-2">
+          <InstrumentSelector instruments={instruments} selected={selected} onChange={handleInstrumentsChange} />
+          <PeriodSelector value={period} onChange={handlePeriodChange} />
+        </div>
 
-      {loading ? <p className="text-sm text-gray-500">불러오는 중...</p> : <TrendChart rows={rows} instruments={instruments} />}
-      {error ? <p className="text-sm text-red-500">{error}</p> : null}
+        {loading ? <p className="text-sm text-muted">불러오는 중...</p> : <TrendChart rows={rows} instruments={instruments} />}
+        {error ? <p className="mt-2 text-sm text-red-500">{error}</p> : null}
+      </div>
 
       <SummaryBox summary={initialSummary} />
 
@@ -77,12 +81,10 @@ export function Dashboard({ instruments, initialRows, initialSummary, initialLas
 
       <SubscribePanel />
 
-      <p className="text-xs text-gray-500 dark:text-gray-400">
-        마지막 업데이트: {initialLastUpdated ?? '아직 없음'}
-      </p>
-      <p className="text-xs text-gray-500 dark:text-gray-400">
-        자료 출처: 한국은행 경제통계시스템(ECOS) · 해설: AI(OpenRouter) 자동 생성
-      </p>
+      <div className="px-1 py-2">
+        <p className="text-xs text-muted">마지막 업데이트: {initialLastUpdated ?? '아직 없음'}</p>
+        <p className="text-xs text-muted">자료 출처: 한국은행 경제통계시스템(ECOS) · 해설: AI(OpenRouter) 자동 생성</p>
+      </div>
     </div>
   )
 }
