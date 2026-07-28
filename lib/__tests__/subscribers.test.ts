@@ -65,9 +65,9 @@ describe('getConfirmedSubscribers', () => {
     fromMock.mockReset()
   })
 
-  it('returns confirmed subscribers with their email and short code', async () => {
+  it('returns confirmed subscribers with their email', async () => {
     const eqMock = vi.fn().mockResolvedValue({
-      data: [{ email: 'a@example.com', short_code: '123456' }],
+      data: [{ email: 'a@example.com' }],
       error: null,
     })
     fromMock.mockReturnValue({ select: () => ({ eq: eqMock }) })
@@ -75,7 +75,7 @@ describe('getConfirmedSubscribers', () => {
     const { getConfirmedSubscribers } = await import('../subscribers')
     const result = await getConfirmedSubscribers()
 
-    expect(result).toEqual([{ email: 'a@example.com', short_code: '123456' }])
+    expect(result).toEqual([{ email: 'a@example.com' }])
     expect(eqMock).toHaveBeenCalledWith('status', 'confirmed')
   })
 
@@ -114,7 +114,7 @@ describe('confirmSubscriberByCode', () => {
   })
 })
 
-describe('unsubscribeByCode', () => {
+describe('unsubscribeByEmail', () => {
   beforeEach(() => {
     fromMock.mockReset()
   })
@@ -122,20 +122,20 @@ describe('unsubscribeByCode', () => {
   it('unsubscribes the matching row and returns true', async () => {
     const selectMock = vi.fn().mockResolvedValue({ data: [{ email: 'a@example.com' }], error: null })
     fromMock.mockReturnValue({
-      update: () => ({ eq: () => ({ eq: () => ({ select: selectMock }) }) }),
+      update: () => ({ eq: () => ({ select: selectMock }) }),
     })
 
-    const { unsubscribeByCode } = await import('../subscribers')
-    expect(await unsubscribeByCode('a@example.com', '123456')).toBe(true)
+    const { unsubscribeByEmail } = await import('../subscribers')
+    expect(await unsubscribeByEmail('a@example.com')).toBe(true)
   })
 
-  it('returns false when email/code do not match', async () => {
+  it('returns false when no row matches the email', async () => {
     const selectMock = vi.fn().mockResolvedValue({ data: [], error: null })
     fromMock.mockReturnValue({
-      update: () => ({ eq: () => ({ eq: () => ({ select: selectMock }) }) }),
+      update: () => ({ eq: () => ({ select: selectMock }) }),
     })
 
-    const { unsubscribeByCode } = await import('../subscribers')
-    expect(await unsubscribeByCode('a@example.com', 'wrong-code')).toBe(false)
+    const { unsubscribeByEmail } = await import('../subscribers')
+    expect(await unsubscribeByEmail('nobody@example.com')).toBe(false)
   })
 })

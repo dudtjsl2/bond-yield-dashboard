@@ -63,27 +63,29 @@ export async function confirmSubscriberByCode(email: string, code: string): Prom
   return (data?.length ?? 0) > 0
 }
 
-export async function unsubscribeByCode(email: string, code: string): Promise<boolean> {
+// No code required to unsubscribe — someone unsubscribing an email they
+// don't own only reduces spam for that address, unlike subscribing (which
+// needs the code as proof of inbox access).
+export async function unsubscribeByEmail(email: string): Promise<boolean> {
   const supabase = getSupabaseAdmin()
   const { data, error } = await supabase
     .from('email_subscribers')
     .update({ status: 'unsubscribed' })
     .eq('email', email)
-    .eq('short_code', code)
     .select('email')
 
   if (error) {
-    console.error('코드 해지 실패:', error)
+    console.error('구독 해지 실패:', error)
     return false
   }
   return (data?.length ?? 0) > 0
 }
 
-export async function getConfirmedSubscribers(): Promise<{ email: string; short_code: string }[]> {
+export async function getConfirmedSubscribers(): Promise<{ email: string }[]> {
   const supabase = getSupabaseAdmin()
   const { data, error } = await supabase
     .from('email_subscribers')
-    .select('email, short_code')
+    .select('email')
     .eq('status', 'confirmed')
 
   if (error) {

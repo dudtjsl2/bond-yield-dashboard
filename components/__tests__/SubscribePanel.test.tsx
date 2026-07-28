@@ -11,7 +11,7 @@ describe('SubscribePanel', () => {
     render(<SubscribePanel />)
 
     fireEvent.change(screen.getByLabelText('이메일 주소'), { target: { value: 'user@example.com' } })
-    fireEvent.click(screen.getByRole('button', { name: '매영업일 자동 발송 구독하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '자동 발송 요청' }))
 
     await waitFor(() => expect(screen.getByText(/확인 코드를 이메일로 보냈습니다/)).toBeInTheDocument())
     expect(fetch).toHaveBeenCalledWith(
@@ -31,7 +31,7 @@ describe('SubscribePanel', () => {
 
     render(<SubscribePanel />)
     fireEvent.change(screen.getByLabelText('이메일 주소'), { target: { value: 'user@example.com' } })
-    fireEvent.click(screen.getByRole('button', { name: '매영업일 자동 발송 구독하기' }))
+    fireEvent.click(screen.getByRole('button', { name: '자동 발송 요청' }))
 
     await waitFor(() =>
       expect(screen.getByText('이미 구독 중이거나 확인 대기 중인 이메일입니다.')).toBeInTheDocument()
@@ -55,19 +55,18 @@ describe('SubscribePanel', () => {
     )
   })
 
-  it('unsubscribes via the fallback code form', async () => {
+  it('unsubscribes with just the email, no code required', async () => {
     render(<SubscribePanel />)
 
     fireEvent.change(screen.getByLabelText('이메일 주소'), { target: { value: 'user@example.com' } })
-    fireEvent.change(screen.getByLabelText('확인 코드'), { target: { value: '123456' } })
-    fireEvent.click(screen.getByRole('button', { name: '코드로 구독 해지' }))
+    fireEvent.click(screen.getByRole('button', { name: '이메일로 구독 해지' }))
 
     await waitFor(() => expect(screen.getByText('구독이 해지되었습니다.')).toBeInTheDocument())
     expect(fetch).toHaveBeenCalledWith(
-      '/api/unsubscribe/code',
+      '/api/unsubscribe/email',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ email: 'user@example.com', code: '123456' }),
+        body: JSON.stringify({ email: 'user@example.com' }),
       })
     )
   })

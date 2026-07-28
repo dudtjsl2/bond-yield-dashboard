@@ -36,11 +36,11 @@ export function SubscribePanel() {
     }
   }
 
-  async function handleCodeAction(path: '/api/subscribe/confirm-code' | '/api/unsubscribe/code', successMessage: string) {
+  async function handleConfirmCode() {
     setCodeStatus('sending')
     setCodeMessage('')
     try {
-      const res = await fetch(path, {
+      const res = await fetch('/api/subscribe/confirm-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code }),
@@ -48,7 +48,30 @@ export function SubscribePanel() {
       const json = await res.json()
       if (json.ok) {
         setCodeStatus('success')
-        setCodeMessage(successMessage)
+        setCodeMessage('구독이 확정되었습니다.')
+      } else {
+        setCodeStatus('error')
+        setCodeMessage(json.error ?? '처리에 실패했어요, 잠시 후 다시 시도해주세요.')
+      }
+    } catch {
+      setCodeStatus('error')
+      setCodeMessage('처리에 실패했어요, 잠시 후 다시 시도해주세요.')
+    }
+  }
+
+  async function handleUnsubscribe() {
+    setCodeStatus('sending')
+    setCodeMessage('')
+    try {
+      const res = await fetch('/api/unsubscribe/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const json = await res.json()
+      if (json.ok) {
+        setCodeStatus('success')
+        setCodeMessage('구독이 해지되었습니다.')
       } else {
         setCodeStatus('error')
         setCodeMessage(json.error ?? '처리에 실패했어요, 잠시 후 다시 시도해주세요.')
@@ -82,7 +105,7 @@ export function SubscribePanel() {
           disabled={status === 'sending' || !email}
           className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
         >
-          매영업일 자동 발송 구독하기
+          자동 발송 요청
         </button>
       </div>
 
@@ -91,7 +114,7 @@ export function SubscribePanel() {
       )}
 
       <div className="mt-4 flex flex-col gap-2 border-t border-black/5 pt-4 dark:border-white/10">
-        <p className="text-[13px] font-semibold text-muted">이메일로 받은 코드로 구독 확인 / 해지</p>
+        <p className="text-[13px] font-semibold text-muted">이메일로 받은 코드로 구독 확인</p>
         <label htmlFor="code-input" className="sr-only">
           확인 코드
         </label>
@@ -108,7 +131,7 @@ export function SubscribePanel() {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => handleCodeAction('/api/subscribe/confirm-code', '구독이 확정되었습니다.')}
+            onClick={handleConfirmCode}
             disabled={codeStatus === 'sending' || !email || !code}
             className="flex-1 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
           >
@@ -116,11 +139,11 @@ export function SubscribePanel() {
           </button>
           <button
             type="button"
-            onClick={() => handleCodeAction('/api/unsubscribe/code', '구독이 해지되었습니다.')}
-            disabled={codeStatus === 'sending' || !email || !code}
+            onClick={handleUnsubscribe}
+            disabled={codeStatus === 'sending' || !email}
             className="flex-1 rounded-full bg-card px-4 py-2 text-sm font-medium text-muted shadow-sm transition hover:opacity-80 disabled:opacity-40"
           >
-            코드로 구독 해지
+            이메일로 구독 해지
           </button>
         </div>
         {codeMessage && (

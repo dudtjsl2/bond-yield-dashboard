@@ -79,10 +79,10 @@ describe('sendDigestEmail', () => {
     sendMailMock.mockClear()
   })
 
-  it('sends the digest with the excel attachment, unsubscribe code, and a latest-values table', async () => {
+  it('sends the digest with the excel attachment and a latest-values table', async () => {
     const { sendDigestEmail } = await import('../gmail')
     const latest = { date: '2026-07-28', items: [{ label: '통안증권 1년', yield_pct: 2.98 }] }
-    await sendDigestEmail('user@example.com', Buffer.from('data'), latest, '654321')
+    await sendDigestEmail('user@example.com', Buffer.from('data'), latest)
 
     expect(sendMailMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -94,7 +94,26 @@ describe('sendDigestEmail', () => {
     const html = sendMailMock.mock.calls[0][0].html
     expect(html).toContain('2026-07-28')
     expect(html).toContain('통안증권 1년')
-    expect(html).toContain('654321')
+    expect(html).toContain('user@example.com')
+  })
+
+  it('includes a site link when NEXT_PUBLIC_SITE_URL is set', async () => {
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://bond-yield-dashboard-pearl.vercel.app'
+    const { sendDigestEmail } = await import('../gmail')
+    await sendDigestEmail('user@example.com', Buffer.from('data'), null)
+
+    const html = sendMailMock.mock.calls[0][0].html
+    expect(html).toContain('https://bond-yield-dashboard-pearl.vercel.app')
+    delete process.env.NEXT_PUBLIC_SITE_URL
+  })
+
+  it('omits the site link when NEXT_PUBLIC_SITE_URL is not set', async () => {
+    delete process.env.NEXT_PUBLIC_SITE_URL
+    const { sendDigestEmail } = await import('../gmail')
+    await sendDigestEmail('user@example.com', Buffer.from('data'), null)
+
+    const html = sendMailMock.mock.calls[0][0].html
+    expect(html).not.toContain('사이트 바로가기')
   })
 })
 

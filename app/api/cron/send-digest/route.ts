@@ -43,7 +43,7 @@ export async function GET(req: Request) {
 
   for (const subscriber of subscribers) {
     try {
-      await sendDigestEmail(subscriber.email, buffer, latest, subscriber.short_code)
+      await sendDigestEmail(subscriber.email, buffer, latest)
       sent.push(subscriber.email)
     } catch (err) {
       console.error(`발송 실패 (${subscriber.email}):`, err)

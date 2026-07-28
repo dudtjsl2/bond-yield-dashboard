@@ -79,26 +79,21 @@ export async function sendConfirmationEmail(to: string, code: string): Promise<v
   }
 }
 
-export async function sendDigestEmail(
-  to: string,
-  buffer: Buffer,
-  latest: LatestSummary,
-  unsubscribeCode: string
-): Promise<void> {
+export async function sendDigestEmail(to: string, buffer: Buffer, latest: LatestSummary): Promise<void> {
   const transporter = getTransporter()
   try {
     const subject = latest
       ? `국고채·통안채·CD 금리 데이터 (${latest.date} 기준, 매영업일 자동 발송)`
       : '국고채·통안채·CD 금리 데이터 (매영업일 자동 발송)'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
     await transporter.sendMail({
       to,
       from: process.env.GMAIL_USER,
       subject,
       html:
         `<p>매영업일 자동 발송 데이터입니다.</p>${buildLatestTableHtml(latest)}` +
-        `<p>구독을 해지하려면 사이트에서 아래 이메일 주소와 코드를 입력해주세요.</p>` +
-        `<p>이메일: ${to}</p>` +
-        `<p style="font-size:20px;font-weight:bold;letter-spacing:2px;">${unsubscribeCode}</p>`,
+        (siteUrl ? `<p>사이트 바로가기: <a href="${siteUrl}">${siteUrl}</a></p>` : '') +
+        `<p>구독을 해지하려면 사이트에서 이 이메일 주소(${to})만 입력하면 됩니다.</p>`,
       attachments: [{ filename: 'bond-yields-5y.xlsx', content: buffer }],
     })
   } catch (err) {

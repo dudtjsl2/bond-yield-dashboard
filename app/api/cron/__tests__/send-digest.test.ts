@@ -2,10 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/holidays', () => ({ isHoliday: vi.fn().mockResolvedValue(false) }))
 vi.mock('@/lib/subscribers', () => ({
-  getConfirmedSubscribers: vi.fn().mockResolvedValue([
-    { email: 'a@example.com', short_code: '111111' },
-    { email: 'b@example.com', short_code: '222222' },
-  ]),
+  getConfirmedSubscribers: vi.fn().mockResolvedValue([{ email: 'a@example.com' }, { email: 'b@example.com' }]),
 }))
 vi.mock('@/lib/gmail', () => ({ sendDigestEmail: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/rates', async () => {
