@@ -7,6 +7,7 @@ const chain: any = {
   in: vi.fn().mockReturnThis(),
   gte: vi.fn().mockReturnThis(),
   order: vi.fn().mockReturnThis(),
+  range: vi.fn().mockReturnThis(),
   limit: vi.fn().mockReturnThis(),
   single: vi.fn().mockResolvedValue({ data: { date: '2026-07-27', summary_text: '요약' }, error: null }),
   then: (resolve: any) => resolve(queryResult),
@@ -21,6 +22,8 @@ describe('getRateSeries', () => {
     chain.select.mockClear()
     chain.in.mockClear()
     chain.gte.mockClear()
+    chain.range.mockClear()
+    chain.then = (resolve: any) => resolve(queryResult)
   })
 
   it('queries only the requested instruments', async () => {
@@ -34,5 +37,36 @@ describe('getRateSeries', () => {
     const { getRateSeries } = await import('../rates')
     await getRateSeries(['treasury_10y'], 'all')
     expect(chain.gte).not.toHaveBeenCalled()
+  })
+
+  it('pages through results when a single response hits the page size', async () => {
+    const PAGE_SIZE = 1000
+    const fullPage = Array.from({ length: PAGE_SIZE }, (_, i) => ({
+      date: `2020-01-${String((i % 28) + 1).padStart(2, '0')}`,
+      instrument: 'treasury_10y',
+      yield_pct: 3,
+    }))
+    const partialPage = [{ date: '2026-07-27', instrument: 'treasury_10y', yield_pct: 3.05 }]
+
+    let call = 0
+    chain.then = (resolve: any) => {
+      call += 1
+      resolve(call === 1 ? { data: fullPage, error: null } : { data: partialPage, error: null })
+    }
+
+    const { getRateSeries } = await import('../rates')
+    const rows = await getRateSeries(['treasury_10y'], 'all')
+
+    expect(rows).toHaveLength(PAGE_SIZE + 1)
+    expect(chain.range).toHaveBeenCalledWith(0, PAGE_SIZE - 1)
+    expect(chain.range).toHaveBeenCalledWith(PAGE_SIZE, PAGE_SIZE * 2 - 1)
+  })
+
+  it('stops after a single page when results are under the page size', async () => {
+    const { getRateSeries } = await import('../rates')
+    const rows = await getRateSeries(['treasury_10y'], 'all')
+
+    expect(rows).toEqual(queryResult.data)
+    expect(chain.range).toHaveBeenCalledTimes(1)
   })
 })
