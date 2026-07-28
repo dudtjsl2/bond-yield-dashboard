@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/subscribers', () => ({
-  createPendingSubscriber: vi.fn().mockResolvedValue({ ok: true, token: 'test-token', code: '123456' }),
+  createPendingSubscriber: vi.fn().mockResolvedValue({ ok: true, code: '123456' }),
 }))
 vi.mock('@/lib/gmail', () => ({ sendConfirmationEmail: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/rateLimit', () => ({
@@ -20,11 +20,6 @@ function makeRequest(body: unknown) {
 describe('POST /api/subscribe', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    process.env.NEXT_PUBLIC_SITE_URL = 'https://example.com'
-  })
-
-  afterEach(() => {
-    process.env.NEXT_PUBLIC_SITE_URL = 'https://example.com'
   })
 
   it('rejects an invalid email address', async () => {
@@ -41,11 +36,7 @@ describe('POST /api/subscribe', () => {
 
     expect(res.status).toBe(200)
     expect(body).toEqual({ ok: true })
-    expect(vi.mocked(sendConfirmationEmail)).toHaveBeenCalledWith(
-      'user@example.com',
-      expect.stringContaining('token=test-token'),
-      '123456'
-    )
+    expect(vi.mocked(sendConfirmationEmail)).toHaveBeenCalledWith('user@example.com', '123456')
   })
 
   it('returns 429 when rate-limited', async () => {
@@ -73,13 +64,6 @@ describe('POST /api/subscribe', () => {
   it('returns 500 when the confirmation email fails to send', async () => {
     const { sendConfirmationEmail } = await import('@/lib/gmail')
     vi.mocked(sendConfirmationEmail).mockRejectedValueOnce(new Error('gmail down'))
-    const { POST } = await import('../subscribe/route')
-    const res = await POST(makeRequest({ email: 'user@example.com' }))
-    expect(res.status).toBe(500)
-  })
-
-  it('returns 500 when NEXT_PUBLIC_SITE_URL is not set', async () => {
-    delete process.env.NEXT_PUBLIC_SITE_URL
     const { POST } = await import('../subscribe/route')
     const res = await POST(makeRequest({ email: 'user@example.com' }))
     expect(res.status).toBe(500)

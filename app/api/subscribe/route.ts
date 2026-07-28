@@ -29,15 +29,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 400 })
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-  if (!siteUrl) {
-    console.error('Missing env var: NEXT_PUBLIC_SITE_URL')
-    return NextResponse.json({ ok: false, error: '잠시 후 다시 시도해주세요.' }, { status: 500 })
-  }
-  const confirmUrl = `${siteUrl}/api/subscribe/confirm?token=${result.token}`
-
   try {
-    await sendConfirmationEmail(email, confirmUrl, result.code)
+    await sendConfirmationEmail(email, result.code)
   } catch (err) {
     console.error('확인 이메일 발송 실패:', err)
     return NextResponse.json({ ok: false, error: '발송에 실패했어요, 잠시 후 다시 시도해주세요.' }, { status: 500 })

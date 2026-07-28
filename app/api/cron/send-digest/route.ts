@@ -24,12 +24,6 @@ export async function GET(req: Request) {
 
   const today = todayKstISODate()
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-  if (!siteUrl) {
-    console.error('Missing env var: NEXT_PUBLIC_SITE_URL')
-    return NextResponse.json({ date: today, error: 'missing NEXT_PUBLIC_SITE_URL' }, { status: 500 })
-  }
-
   if (await isHoliday(today)) {
     return NextResponse.json({ date: today, skipped: 'holiday', sent: [], failed: [] })
   }
@@ -49,8 +43,7 @@ export async function GET(req: Request) {
 
   for (const subscriber of subscribers) {
     try {
-      const unsubscribeUrl = `${siteUrl}/api/unsubscribe?token=${subscriber.confirm_token}`
-      await sendDigestEmail(subscriber.email, buffer, unsubscribeUrl, latest, subscriber.short_code)
+      await sendDigestEmail(subscriber.email, buffer, latest, subscriber.short_code)
       sent.push(subscriber.email)
     } catch (err) {
       console.error(`발송 실패 (${subscriber.email}):`, err)

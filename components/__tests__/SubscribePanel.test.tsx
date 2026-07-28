@@ -13,7 +13,7 @@ describe('SubscribePanel', () => {
     fireEvent.change(screen.getByLabelText('이메일 주소'), { target: { value: 'user@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: '매영업일 자동 발송 구독하기' }))
 
-    await waitFor(() => expect(screen.getByText(/확인 이메일을 보냈습니다/)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/확인 코드를 이메일로 보냈습니다/)).toBeInTheDocument())
     expect(fetch).toHaveBeenCalledWith(
       '/api/subscribe',
       expect.objectContaining({
@@ -41,7 +41,6 @@ describe('SubscribePanel', () => {
   it('confirms via the fallback code form', async () => {
     render(<SubscribePanel />)
 
-    fireEvent.click(screen.getByRole('button', { name: /코드로 확인\/해지하기/ }))
     fireEvent.change(screen.getByLabelText('코드 확인용 이메일 주소'), { target: { value: 'user@example.com' } })
     fireEvent.change(screen.getByLabelText('확인 코드'), { target: { value: '123456' } })
     fireEvent.click(screen.getByRole('button', { name: '코드로 구독 확인' }))
@@ -59,7 +58,6 @@ describe('SubscribePanel', () => {
   it('unsubscribes via the fallback code form', async () => {
     render(<SubscribePanel />)
 
-    fireEvent.click(screen.getByRole('button', { name: /코드로 확인\/해지하기/ }))
     fireEvent.change(screen.getByLabelText('코드 확인용 이메일 주소'), { target: { value: 'user@example.com' } })
     fireEvent.change(screen.getByLabelText('확인 코드'), { target: { value: '123456' } })
     fireEvent.click(screen.getByRole('button', { name: '코드로 구독 해지' }))
@@ -81,7 +79,6 @@ describe('SubscribePanel', () => {
     } as Response)
 
     render(<SubscribePanel />)
-    fireEvent.click(screen.getByRole('button', { name: /코드로 확인\/해지하기/ }))
     fireEvent.change(screen.getByLabelText('코드 확인용 이메일 주소'), { target: { value: 'user@example.com' } })
     fireEvent.change(screen.getByLabelText('확인 코드'), { target: { value: '000000' } })
     fireEvent.click(screen.getByRole('button', { name: '코드로 구독 확인' }))

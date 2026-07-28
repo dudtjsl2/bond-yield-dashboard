@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/holidays', () => ({ isHoliday: vi.fn().mockResolvedValue(false) }))
 vi.mock('@/lib/subscribers', () => ({
   getConfirmedSubscribers: vi.fn().mockResolvedValue([
-    { email: 'a@example.com', confirm_token: 'token-a', short_code: '111111' },
-    { email: 'b@example.com', confirm_token: 'token-b', short_code: '222222' },
+    { email: 'a@example.com', short_code: '111111' },
+    { email: 'b@example.com', short_code: '222222' },
   ]),
 }))
 vi.mock('@/lib/gmail', () => ({ sendDigestEmail: vi.fn().mockResolvedValue(undefined) }))
@@ -25,7 +25,6 @@ function makeRequest() {
 describe('GET /api/cron/send-digest', () => {
   beforeEach(() => {
     process.env.CRON_SECRET = 'test-secret'
-    process.env.NEXT_PUBLIC_SITE_URL = 'https://example.com'
     vi.clearAllMocks()
   })
 
@@ -70,12 +69,5 @@ describe('GET /api/cron/send-digest', () => {
 
     expect(body.sent).toEqual(['b@example.com'])
     expect(body.failed).toEqual(['a@example.com'])
-  })
-
-  it('returns 500 when NEXT_PUBLIC_SITE_URL is not set', async () => {
-    delete process.env.NEXT_PUBLIC_SITE_URL
-    const { GET } = await import('../send-digest/route')
-    const res = await GET(makeRequest())
-    expect(res.status).toBe(500)
   })
 })

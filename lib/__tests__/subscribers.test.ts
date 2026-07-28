@@ -60,82 +60,14 @@ describe('createPendingSubscriber', () => {
   })
 })
 
-describe('confirmSubscriber', () => {
-  beforeEach(() => {
-    fromMock.mockReset()
-  })
-
-  it('confirms the subscriber matching the token and returns true', async () => {
-    const selectMock = vi.fn().mockResolvedValue({ data: [{ email: 'a@example.com' }], error: null })
-    const statusEqMock = vi.fn().mockReturnValue({ select: selectMock })
-    const tokenEqMock = vi.fn().mockReturnValue({ eq: statusEqMock })
-    fromMock.mockReturnValue({
-      update: () => ({ eq: tokenEqMock }),
-    })
-
-    const { confirmSubscriber } = await import('../subscribers')
-    expect(await confirmSubscriber('valid-token')).toBe(true)
-    expect(tokenEqMock).toHaveBeenCalledWith('confirm_token', 'valid-token')
-    expect(statusEqMock).toHaveBeenCalledWith('status', 'pending')
-  })
-
-  it('returns false when no row matches the token', async () => {
-    const selectMock = vi.fn().mockResolvedValue({ data: [], error: null })
-    fromMock.mockReturnValue({
-      update: () => ({ eq: () => ({ eq: () => ({ select: selectMock }) }) }),
-    })
-
-    const { confirmSubscriber } = await import('../subscribers')
-    expect(await confirmSubscriber('bad-token')).toBe(false)
-  })
-
-  it('does not resurrect a subscriber who already unsubscribed', async () => {
-    // The status guard means the update matches zero rows for a token whose
-    // subscriber already unsubscribed, even though the token itself is valid.
-    const selectMock = vi.fn().mockResolvedValue({ data: [], error: null })
-    fromMock.mockReturnValue({
-      update: () => ({ eq: () => ({ eq: () => ({ select: selectMock }) }) }),
-    })
-
-    const { confirmSubscriber } = await import('../subscribers')
-    expect(await confirmSubscriber('previously-unsubscribed-token')).toBe(false)
-  })
-})
-
-describe('unsubscribeByToken', () => {
-  beforeEach(() => {
-    fromMock.mockReset()
-  })
-
-  it('unsubscribes the matching row and returns true', async () => {
-    const selectMock = vi.fn().mockResolvedValue({ data: [{ email: 'a@example.com' }], error: null })
-    fromMock.mockReturnValue({
-      update: () => ({ eq: () => ({ select: selectMock }) }),
-    })
-
-    const { unsubscribeByToken } = await import('../subscribers')
-    expect(await unsubscribeByToken('valid-token')).toBe(true)
-  })
-
-  it('returns false when no row matches the token', async () => {
-    const selectMock = vi.fn().mockResolvedValue({ data: [], error: null })
-    fromMock.mockReturnValue({
-      update: () => ({ eq: () => ({ select: selectMock }) }),
-    })
-
-    const { unsubscribeByToken } = await import('../subscribers')
-    expect(await unsubscribeByToken('bad-token')).toBe(false)
-  })
-})
-
 describe('getConfirmedSubscribers', () => {
   beforeEach(() => {
     fromMock.mockReset()
   })
 
-  it('returns confirmed subscribers with their email, token, and short code', async () => {
+  it('returns confirmed subscribers with their email and short code', async () => {
     const eqMock = vi.fn().mockResolvedValue({
-      data: [{ email: 'a@example.com', confirm_token: 't1', short_code: '123456' }],
+      data: [{ email: 'a@example.com', short_code: '123456' }],
       error: null,
     })
     fromMock.mockReturnValue({ select: () => ({ eq: eqMock }) })
@@ -143,7 +75,7 @@ describe('getConfirmedSubscribers', () => {
     const { getConfirmedSubscribers } = await import('../subscribers')
     const result = await getConfirmedSubscribers()
 
-    expect(result).toEqual([{ email: 'a@example.com', confirm_token: 't1', short_code: '123456' }])
+    expect(result).toEqual([{ email: 'a@example.com', short_code: '123456' }])
     expect(eqMock).toHaveBeenCalledWith('status', 'confirmed')
   })
 
