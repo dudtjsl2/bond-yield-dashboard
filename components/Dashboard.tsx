@@ -58,9 +58,9 @@ export function Dashboard({ instruments, initialRows, initialSummary, initialLas
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">📈 국고채·통안채·CD 금리 대시보드</h1>
+    <div className="mx-auto max-w-4xl space-y-4 p-3 sm:p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-base font-bold sm:text-xl">📈 국고채·통안채·CD 금리 대시보드</h1>
         <ThemeToggle />
       </div>
 

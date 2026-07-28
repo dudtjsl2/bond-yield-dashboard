@@ -28,12 +28,12 @@ export function TrendChart({ rows, instruments }: Props) {
   const presentCodes = Array.from(new Set(rows.map((r) => r.instrument)))
 
   return (
-    <div data-testid="trend-chart" className="h-80 w-full">
+    <div data-testid="trend-chart" className="h-64 w-full sm:h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData}>
+        <LineChart data={chartData} margin={{ left: -10, right: 8 }}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-          <YAxis unit="%" tick={{ fontSize: 12 }} />
+          <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" minTickGap={20} />
+          <YAxis unit="%" tick={{ fontSize: 11 }} width={40} />
           <Tooltip />
           <Legend />
           {presentCodes.map((code, i) => {

@@ -41,11 +41,11 @@ export function ExportPanel({ selectedInstruments, period }: Props) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded border border-gray-200 p-4 dark:border-gray-700">
+    <div className="flex flex-col gap-3 rounded border border-gray-200 p-4 dark:border-gray-700 sm:flex-row sm:flex-wrap sm:items-center">
       {hasSelection ? (
         <a
           href={`/api/export/excel?${excelParams.toString()}`}
-          className="rounded bg-green-600 px-3 py-1 text-sm text-white"
+          className="rounded bg-green-600 px-3 py-2 text-center text-sm text-white sm:py-1"
         >
           📥 엑셀 다운로드
         </a>
@@ -54,32 +54,34 @@ export function ExportPanel({ selectedInstruments, period }: Props) {
           type="button"
           disabled
           aria-disabled="true"
-          className="cursor-not-allowed rounded bg-green-600 px-3 py-1 text-sm text-white opacity-50"
+          className="cursor-not-allowed rounded bg-green-600 px-3 py-2 text-sm text-white opacity-50 sm:py-1"
         >
           📥 엑셀 다운로드
         </button>
       )}
 
-      <label htmlFor="export-email" className="sr-only">
-        이메일 주소
-      </label>
-      <input
-        id="export-email"
-        type="email"
-        placeholder="이메일 주소 입력"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        aria-label="이메일 주소"
-        className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-900"
-      />
-      <button
-        type="button"
-        onClick={handleSend}
-        disabled={status === 'sending' || !email}
-        className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50"
-      >
-        이메일로 받기
-      </button>
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-1 sm:items-center">
+        <label htmlFor="export-email" className="sr-only">
+          이메일 주소
+        </label>
+        <input
+          id="export-email"
+          type="email"
+          placeholder="이메일 주소 입력"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-label="이메일 주소"
+          className="w-full rounded border border-gray-300 px-2 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 sm:w-auto sm:flex-1 sm:py-1"
+        />
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={status === 'sending' || !email}
+          className="rounded bg-blue-600 px-3 py-2 text-sm text-white disabled:opacity-50 sm:py-1"
+        >
+          이메일로 받기
+        </button>
+      </div>
 
       {message && (
         <span className={status === 'error' ? 'text-sm text-red-600' : 'text-sm text-green-600'}>{message}</span>
