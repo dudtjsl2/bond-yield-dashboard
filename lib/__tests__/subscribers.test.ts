@@ -27,6 +27,9 @@ describe('createPendingSubscriber', () => {
       expect.objectContaining({ email: 'new@example.com', status: 'pending' }),
       { onConflict: 'email' }
     )
+    if (result.ok) {
+      expect(result.code).toMatch(/^\d{6}$/)
+    }
   })
 
   it('rejects when the email is already pending or confirmed', async () => {
@@ -130,9 +133,9 @@ describe('getConfirmedSubscribers', () => {
     fromMock.mockReset()
   })
 
-  it('returns confirmed subscribers with their email and token', async () => {
+  it('returns confirmed subscribers with their email, token, and short code', async () => {
     const eqMock = vi.fn().mockResolvedValue({
-      data: [{ email: 'a@example.com', confirm_token: 't1' }],
+      data: [{ email: 'a@example.com', confirm_token: 't1', short_code: '123456' }],
       error: null,
     })
     fromMock.mockReturnValue({ select: () => ({ eq: eqMock }) })
@@ -140,7 +143,7 @@ describe('getConfirmedSubscribers', () => {
     const { getConfirmedSubscribers } = await import('../subscribers')
     const result = await getConfirmedSubscribers()
 
-    expect(result).toEqual([{ email: 'a@example.com', confirm_token: 't1' }])
+    expect(result).toEqual([{ email: 'a@example.com', confirm_token: 't1', short_code: '123456' }])
     expect(eqMock).toHaveBeenCalledWith('status', 'confirmed')
   })
 
@@ -150,5 +153,57 @@ describe('getConfirmedSubscribers', () => {
 
     const { getConfirmedSubscribers } = await import('../subscribers')
     expect(await getConfirmedSubscribers()).toEqual([])
+  })
+})
+
+describe('confirmSubscriberByCode', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+  })
+
+  it('confirms the subscriber matching email + code and returns true', async () => {
+    const selectMock = vi.fn().mockResolvedValue({ data: [{ email: 'a@example.com' }], error: null })
+    fromMock.mockReturnValue({
+      update: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ select: selectMock }) }) }) }),
+    })
+
+    const { confirmSubscriberByCode } = await import('../subscribers')
+    expect(await confirmSubscriberByCode('a@example.com', '123456')).toBe(true)
+  })
+
+  it('returns false when email/code do not match a pending row', async () => {
+    const selectMock = vi.fn().mockResolvedValue({ data: [], error: null })
+    fromMock.mockReturnValue({
+      update: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ select: selectMock }) }) }) }),
+    })
+
+    const { confirmSubscriberByCode } = await import('../subscribers')
+    expect(await confirmSubscriberByCode('a@example.com', 'wrong-code')).toBe(false)
+  })
+})
+
+describe('unsubscribeByCode', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+  })
+
+  it('unsubscribes the matching row and returns true', async () => {
+    const selectMock = vi.fn().mockResolvedValue({ data: [{ email: 'a@example.com' }], error: null })
+    fromMock.mockReturnValue({
+      update: () => ({ eq: () => ({ eq: () => ({ select: selectMock }) }) }),
+    })
+
+    const { unsubscribeByCode } = await import('../subscribers')
+    expect(await unsubscribeByCode('a@example.com', '123456')).toBe(true)
+  })
+
+  it('returns false when email/code do not match', async () => {
+    const selectMock = vi.fn().mockResolvedValue({ data: [], error: null })
+    fromMock.mockReturnValue({
+      update: () => ({ eq: () => ({ eq: () => ({ select: selectMock }) }) }),
+    })
+
+    const { unsubscribeByCode } = await import('../subscribers')
+    expect(await unsubscribeByCode('a@example.com', 'wrong-code')).toBe(false)
   })
 })

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@/lib/subscribers', () => ({
-  createPendingSubscriber: vi.fn().mockResolvedValue({ ok: true, token: 'test-token' }),
+  createPendingSubscriber: vi.fn().mockResolvedValue({ ok: true, token: 'test-token', code: '123456' }),
 }))
 vi.mock('@/lib/gmail', () => ({ sendConfirmationEmail: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/rateLimit', () => ({
@@ -43,7 +43,8 @@ describe('POST /api/subscribe', () => {
     expect(body).toEqual({ ok: true })
     expect(vi.mocked(sendConfirmationEmail)).toHaveBeenCalledWith(
       'user@example.com',
-      expect.stringContaining('token=test-token')
+      expect.stringContaining('token=test-token'),
+      '123456'
     )
   })
 

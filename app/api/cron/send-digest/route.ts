@@ -50,7 +50,7 @@ export async function GET(req: Request) {
   for (const subscriber of subscribers) {
     try {
       const unsubscribeUrl = `${siteUrl}/api/unsubscribe?token=${subscriber.confirm_token}`
-      await sendDigestEmail(subscriber.email, buffer, unsubscribeUrl, latest)
+      await sendDigestEmail(subscriber.email, buffer, unsubscribeUrl, latest, subscriber.short_code)
       sent.push(subscriber.email)
     } catch (err) {
       console.error(`발송 실패 (${subscriber.email}):`, err)

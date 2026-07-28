@@ -62,14 +62,17 @@ export async function sendRatesEmail(
   }
 }
 
-export async function sendConfirmationEmail(to: string, confirmUrl: string): Promise<void> {
+export async function sendConfirmationEmail(to: string, confirmUrl: string, code: string): Promise<void> {
   const transporter = getTransporter()
   try {
     await transporter.sendMail({
       to,
       from: process.env.GMAIL_USER,
       subject: '[국고채 대시보드] 구독 확인',
-      html: `<p>아래 링크를 클릭하면 매영업일 오후 5시 자동 발송 구독이 확정됩니다.</p><p><a href="${confirmUrl}">${confirmUrl}</a></p>`,
+      html:
+        `<p>아래 링크를 클릭하면 매영업일 오후 5시 자동 발송 구독이 확정됩니다.</p><p><a href="${confirmUrl}">${confirmUrl}</a></p>` +
+        `<p>회사 메일 보안 정책으로 링크가 열리지 않으면, 사이트에서 이메일 주소와 아래 확인 코드를 입력해주세요.</p>` +
+        `<p style="font-size:20px;font-weight:bold;letter-spacing:2px;">${code}</p>`,
     })
   } catch (err) {
     throw new Error(`확인 이메일 발송 실패: ${err instanceof Error ? err.message : String(err)}`)
@@ -80,7 +83,8 @@ export async function sendDigestEmail(
   to: string,
   buffer: Buffer,
   unsubscribeUrl: string,
-  latest: LatestSummary
+  latest: LatestSummary,
+  unsubscribeCode: string
 ): Promise<void> {
   const transporter = getTransporter()
   try {
@@ -93,7 +97,9 @@ export async function sendDigestEmail(
       subject,
       html:
         `<p>매영업일 자동 발송 데이터입니다.</p>${buildLatestTableHtml(latest)}` +
-        `<p><a href="${unsubscribeUrl}">구독 해지</a></p>`,
+        `<p><a href="${unsubscribeUrl}">구독 해지</a></p>` +
+        `<p>링크가 안 열리면 사이트에서 이메일 주소와 아래 코드로 해지할 수 있습니다: ` +
+        `<strong>${unsubscribeCode}</strong></p>`,
       attachments: [{ filename: 'bond-yields-5y.xlsx', content: buffer }],
     })
   } catch (err) {

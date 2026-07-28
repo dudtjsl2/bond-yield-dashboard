@@ -18,7 +18,7 @@ Vercel 프로젝트의 Settings → Environment Variables에 아래 값을 모�
 
 ## 배포 절차
 
-1. Supabase 프로젝트에서 `supabase/migrations/0001_init.sql`과 `supabase/migrations/0002_email_subscribers.sql`을 순서대로 SQL Editor로 실행
+1. Supabase 프로젝트에서 `supabase/migrations/0001_init.sql`, `0002_email_subscribers.sql`, `0003_subscriber_short_code.sql`을 순서대로 SQL Editor로 실행
 2. GitHub 저장소에 이 코드를 push
 3. Vercel에서 해당 저장소를 Import
 4. 위 표의 환경 변수를 모두 등록

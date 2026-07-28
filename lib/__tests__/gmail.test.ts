@@ -59,9 +59,9 @@ describe('sendConfirmationEmail', () => {
     sendMailMock.mockClear()
   })
 
-  it('sends a confirmation email containing the confirm URL', async () => {
+  it('sends a confirmation email containing the confirm URL and fallback code', async () => {
     const { sendConfirmationEmail } = await import('../gmail')
-    await sendConfirmationEmail('user@example.com', 'https://example.com/api/subscribe/confirm?token=abc')
+    await sendConfirmationEmail('user@example.com', 'https://example.com/api/subscribe/confirm?token=abc', '123456')
 
     expect(sendMailMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -69,6 +69,7 @@ describe('sendConfirmationEmail', () => {
         html: expect.stringContaining('https://example.com/api/subscribe/confirm?token=abc'),
       })
     )
+    expect(sendMailMock.mock.calls[0][0].html).toContain('123456')
   })
 })
 
@@ -79,14 +80,15 @@ describe('sendDigestEmail', () => {
     sendMailMock.mockClear()
   })
 
-  it('sends the digest with the excel attachment, unsubscribe link, and a latest-values table', async () => {
+  it('sends the digest with the excel attachment, unsubscribe link/code, and a latest-values table', async () => {
     const { sendDigestEmail } = await import('../gmail')
     const latest = { date: '2026-07-28', items: [{ label: '통안증권 1년', yield_pct: 2.98 }] }
     await sendDigestEmail(
       'user@example.com',
       Buffer.from('data'),
       'https://example.com/api/unsubscribe?token=abc',
-      latest
+      latest,
+      '654321'
     )
 
     expect(sendMailMock).toHaveBeenCalledWith(
@@ -100,6 +102,7 @@ describe('sendDigestEmail', () => {
     const html = sendMailMock.mock.calls[0][0].html
     expect(html).toContain('2026-07-28')
     expect(html).toContain('통안증권 1년')
+    expect(html).toContain('654321')
   })
 })
 
