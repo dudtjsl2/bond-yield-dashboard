@@ -77,6 +77,9 @@ export function Dashboard({ instruments, initialRows, initialSummary, initialLas
       <p className="text-xs text-gray-500 dark:text-gray-400">
         마지막 업데이트: {initialLastUpdated ?? '아직 없음'}
       </p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        자료 출처: 한국은행 경제통계시스템(ECOS) · 해설: AI(OpenRouter) 자동 생성
+      </p>
     </div>
   )
 }
