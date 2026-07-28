@@ -13,6 +13,9 @@ export function SubscribePanel() {
   const [codeStatus, setCodeStatus] = useState<Status>('idle')
   const [codeMessage, setCodeMessage] = useState('')
 
+  const [unsubStatus, setUnsubStatus] = useState<Status>('idle')
+  const [unsubMessage, setUnsubMessage] = useState('')
+
   async function handleSubscribe() {
     setStatus('sending')
     setMessage('')
@@ -60,8 +63,8 @@ export function SubscribePanel() {
   }
 
   async function handleUnsubscribe() {
-    setCodeStatus('sending')
-    setCodeMessage('')
+    setUnsubStatus('sending')
+    setUnsubMessage('')
     try {
       const res = await fetch('/api/unsubscribe/email', {
         method: 'POST',
@@ -70,15 +73,15 @@ export function SubscribePanel() {
       })
       const json = await res.json()
       if (json.ok) {
-        setCodeStatus('success')
-        setCodeMessage('구독이 해지되었습니다.')
+        setUnsubStatus('success')
+        setUnsubMessage('구독이 해지되었습니다.')
       } else {
-        setCodeStatus('error')
-        setCodeMessage(json.error ?? '처리에 실패했어요, 잠시 후 다시 시도해주세요.')
+        setUnsubStatus('error')
+        setUnsubMessage(json.error ?? '처리에 실패했어요, 잠시 후 다시 시도해주세요.')
       }
     } catch {
-      setCodeStatus('error')
-      setCodeMessage('처리에 실패했어요, 잠시 후 다시 시도해주세요.')
+      setUnsubStatus('error')
+      setUnsubMessage('처리에 실패했어요, 잠시 후 다시 시도해주세요.')
     }
   }
 
@@ -107,10 +110,23 @@ export function SubscribePanel() {
         >
           자동 발송 요청
         </button>
+        <button
+          type="button"
+          onClick={handleUnsubscribe}
+          disabled={unsubStatus === 'sending' || !email}
+          className="rounded-full bg-accent/15 px-4 py-2 text-sm font-medium text-accent transition hover:bg-accent/25 disabled:opacity-40"
+        >
+          이메일로 구독 해지
+        </button>
       </div>
 
       {message && (
         <p className={status === 'error' ? 'mt-2 text-sm text-red-500' : 'mt-2 text-sm text-accent'}>{message}</p>
+      )}
+      {unsubMessage && (
+        <p className={unsubStatus === 'error' ? 'mt-2 text-sm text-red-500' : 'mt-2 text-sm text-accent'}>
+          {unsubMessage}
+        </p>
       )}
 
       <div className="mt-4 flex flex-col gap-2 border-t border-black/5 pt-4 dark:border-white/10">
@@ -128,24 +144,14 @@ export function SubscribePanel() {
           aria-label="확인 코드"
           className="w-full rounded-xl bg-background px-3 py-2 text-sm outline-none ring-1 ring-inset ring-black/5 focus:ring-2 focus:ring-accent dark:ring-white/10"
         />
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={handleConfirmCode}
-            disabled={codeStatus === 'sending' || !email || !code}
-            className="flex-1 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
-          >
-            코드로 구독 확인
-          </button>
-          <button
-            type="button"
-            onClick={handleUnsubscribe}
-            disabled={codeStatus === 'sending' || !email}
-            className="flex-1 rounded-full bg-card px-4 py-2 text-sm font-medium text-muted shadow-sm transition hover:opacity-80 disabled:opacity-40"
-          >
-            이메일로 구독 해지
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleConfirmCode}
+          disabled={codeStatus === 'sending' || !email || !code}
+          className="w-full rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
+        >
+          코드로 구독 확인
+        </button>
         {codeMessage && (
           <p className={codeStatus === 'error' ? 'text-sm text-red-500' : 'text-sm text-accent'}>{codeMessage}</p>
         )}
