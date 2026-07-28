@@ -7,6 +7,7 @@ import { TrendChart } from './TrendChart'
 import { SummaryBox } from './SummaryBox'
 import { ThemeToggle } from './ThemeToggle'
 import { ExportPanel } from './ExportPanel'
+import { SubscribePanel } from './SubscribePanel'
 import type { Instrument } from '@/lib/instruments'
 import type { Period } from '@/lib/rates'
 
@@ -73,6 +74,8 @@ export function Dashboard({ instruments, initialRows, initialSummary, initialLas
       <SummaryBox summary={initialSummary} />
 
       <ExportPanel selectedInstruments={selected} period={period} />
+
+      <SubscribePanel />
 
       <p className="text-xs text-gray-500 dark:text-gray-400">
         마지막 업데이트: {initialLastUpdated ?? '아직 없음'}
