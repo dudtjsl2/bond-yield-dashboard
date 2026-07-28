@@ -47,7 +47,7 @@ export function ExportPanel({ selectedInstruments, period }: Props) {
           href={`/api/export/excel?${excelParams.toString()}`}
           className="rounded bg-green-600 px-3 py-2 text-center text-sm text-white sm:py-1"
         >
-          📥 엑셀 다운로드
+          엑셀 다운로드
         </a>
       ) : (
         <button
@@ -56,7 +56,7 @@ export function ExportPanel({ selectedInstruments, period }: Props) {
           aria-disabled="true"
           className="cursor-not-allowed rounded bg-green-600 px-3 py-2 text-sm text-white opacity-50 sm:py-1"
         >
-          📥 엑셀 다운로드
+          엑셀 다운로드
         </button>
       )}
 
