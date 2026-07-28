@@ -1,6 +1,31 @@
 import { getSupabaseAdmin } from './supabase'
+import type { Instrument } from './instruments'
 
 export type Period = '1m' | '1y' | '5y' | 'all'
+
+export type LatestSummary = {
+  date: string
+  items: { label: string; yield_pct: number }[]
+} | null
+
+type Row = { date: string; instrument: string; yield_pct: number }
+
+// Picks out the most recent date present in `rows` and returns each
+// instrument's value on that date, in `instruments` order, for use in
+// email bodies (a quick "as of <date>" table alongside the full attachment).
+export function summarizeLatest(rows: Row[], instruments: Instrument[]): LatestSummary {
+  if (rows.length === 0) return null
+
+  const latestDate = rows.reduce((max, r) => (r.date > max ? r.date : max), rows[0].date)
+  const latestRows = rows.filter((r) => r.date === latestDate)
+  const byCode = new Map(latestRows.map((r) => [r.instrument, r.yield_pct]))
+
+  const items = instruments
+    .filter((inst) => byCode.has(inst.code))
+    .map((inst) => ({ label: inst.label, yield_pct: byCode.get(inst.code)! }))
+
+  return { date: latestDate, items }
+}
 
 // Validates untrusted input (query params, JSON body) against the known
 // Period values before it is ever used in filenames/headers, to avoid

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getRateSeries, parsePeriod } from '@/lib/rates'
+import { getRateSeries, parsePeriod, summarizeLatest } from '@/lib/rates'
 import { buildRatesWorkbook } from '@/lib/excel'
 import { sendRatesEmail } from '@/lib/gmail'
 import { checkEmailRateLimit, recordEmailSend } from '@/lib/rateLimit'
@@ -35,8 +35,9 @@ export async function POST(req: Request) {
   try {
     const rows = await getRateSeries(codes, period)
     const buffer = buildRatesWorkbook(rows, INSTRUMENTS)
+    const latest = summarizeLatest(rows, INSTRUMENTS)
     try {
-      await sendRatesEmail(email, buffer, `bond-yields-${period}.xlsx`)
+      await sendRatesEmail(email, buffer, `bond-yields-${period}.xlsx`, latest)
     } finally {
       // Record the attempt whether or not the send succeeded, so a caller
       // can't retry-flood past the rate limit just by causing the send to fail.

@@ -70,3 +70,42 @@ describe('getRateSeries', () => {
     expect(chain.range).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('summarizeLatest', () => {
+  const instruments = [
+    { code: 'treasury_3y', label: '국고채 3년', ecosStatCode: '', ecosItemCode1: '' },
+    { code: 'msb_1y', label: '통안증권 1년', ecosStatCode: '', ecosItemCode1: '' },
+  ]
+
+  it('returns null when there are no rows', async () => {
+    const { summarizeLatest } = await import('../rates')
+    expect(summarizeLatest([], instruments)).toBeNull()
+  })
+
+  it('picks the most recent date and only that date\'s values, in instrument order', async () => {
+    const { summarizeLatest } = await import('../rates')
+    const rows = [
+      { date: '2026-07-01', instrument: 'treasury_3y', yield_pct: 3.2 },
+      { date: '2026-07-28', instrument: 'msb_1y', yield_pct: 2.98 },
+      { date: '2026-07-28', instrument: 'treasury_3y', yield_pct: 3.15 },
+    ]
+
+    expect(summarizeLatest(rows, instruments)).toEqual({
+      date: '2026-07-28',
+      items: [
+        { label: '국고채 3년', yield_pct: 3.15 },
+        { label: '통안증권 1년', yield_pct: 2.98 },
+      ],
+    })
+  })
+
+  it('skips instruments with no value on the latest date', async () => {
+    const { summarizeLatest } = await import('../rates')
+    const rows = [{ date: '2026-07-28', instrument: 'treasury_3y', yield_pct: 3.15 }]
+
+    expect(summarizeLatest(rows, instruments)).toEqual({
+      date: '2026-07-28',
+      items: [{ label: '국고채 3년', yield_pct: 3.15 }],
+    })
+  })
+})

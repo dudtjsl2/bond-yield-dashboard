@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { INSTRUMENTS } from '@/lib/instruments'
-import { getRateSeries } from '@/lib/rates'
+import { getRateSeries, summarizeLatest } from '@/lib/rates'
 import { buildRatesWorkbook } from '@/lib/excel'
 import { isHoliday } from '@/lib/holidays'
 import { getConfirmedSubscribers } from '@/lib/subscribers'
@@ -42,6 +42,7 @@ export async function GET(req: Request) {
   const allCodes = INSTRUMENTS.map((i) => i.code)
   const rows = await getRateSeries(allCodes, '5y')
   const buffer = buildRatesWorkbook(rows, INSTRUMENTS)
+  const latest = summarizeLatest(rows, INSTRUMENTS)
 
   const sent: string[] = []
   const failed: string[] = []
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
   for (const subscriber of subscribers) {
     try {
       const unsubscribeUrl = `${siteUrl}/api/unsubscribe?token=${subscriber.confirm_token}`
-      await sendDigestEmail(subscriber.email, buffer, unsubscribeUrl)
+      await sendDigestEmail(subscriber.email, buffer, unsubscribeUrl, latest)
       sent.push(subscriber.email)
     } catch (err) {
       console.error(`발송 실패 (${subscriber.email}):`, err)
