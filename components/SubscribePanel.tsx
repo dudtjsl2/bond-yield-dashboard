@@ -9,7 +9,6 @@ export function SubscribePanel() {
   const [status, setStatus] = useState<Status>('idle')
   const [message, setMessage] = useState('')
 
-  const [codeEmail, setCodeEmail] = useState('')
   const [code, setCode] = useState('')
   const [codeStatus, setCodeStatus] = useState<Status>('idle')
   const [codeMessage, setCodeMessage] = useState('')
@@ -26,8 +25,7 @@ export function SubscribePanel() {
       const json = await res.json()
       if (json.ok) {
         setStatus('success')
-        setMessage('확인 코드를 이메일로 보냈습니다. 아래에 이메일과 코드를 입력해 구독을 확정해주세요.')
-        setCodeEmail(email)
+        setMessage('확인 코드를 이메일로 보냈습니다. 아래에 코드를 입력해 구독을 확정해주세요.')
       } else {
         setStatus('error')
         setMessage(json.error ?? '구독 신청에 실패했어요, 잠시 후 다시 시도해주세요.')
@@ -45,7 +43,7 @@ export function SubscribePanel() {
       const res = await fetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: codeEmail, code }),
+        body: JSON.stringify({ email, code }),
       })
       const json = await res.json()
       if (json.ok) {
@@ -94,18 +92,6 @@ export function SubscribePanel() {
 
       <div className="mt-4 flex flex-col gap-2 border-t border-black/5 pt-4 dark:border-white/10">
         <p className="text-[13px] font-semibold text-muted">이메일로 받은 코드로 구독 확인 / 해지</p>
-        <label htmlFor="code-email" className="sr-only">
-          코드 확인용 이메일 주소
-        </label>
-        <input
-          id="code-email"
-          type="email"
-          placeholder="이메일 주소 입력"
-          value={codeEmail}
-          onChange={(e) => setCodeEmail(e.target.value)}
-          aria-label="코드 확인용 이메일 주소"
-          className="w-full rounded-xl bg-background px-3 py-2 text-sm outline-none ring-1 ring-inset ring-black/5 focus:ring-2 focus:ring-accent dark:ring-white/10"
-        />
         <label htmlFor="code-input" className="sr-only">
           확인 코드
         </label>
@@ -123,7 +109,7 @@ export function SubscribePanel() {
           <button
             type="button"
             onClick={() => handleCodeAction('/api/subscribe/confirm-code', '구독이 확정되었습니다.')}
-            disabled={codeStatus === 'sending' || !codeEmail || !code}
+            disabled={codeStatus === 'sending' || !email || !code}
             className="flex-1 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
           >
             코드로 구독 확인
@@ -131,7 +117,7 @@ export function SubscribePanel() {
           <button
             type="button"
             onClick={() => handleCodeAction('/api/unsubscribe/code', '구독이 해지되었습니다.')}
-            disabled={codeStatus === 'sending' || !codeEmail || !code}
+            disabled={codeStatus === 'sending' || !email || !code}
             className="flex-1 rounded-full bg-card px-4 py-2 text-sm font-medium text-muted shadow-sm transition hover:opacity-80 disabled:opacity-40"
           >
             코드로 구독 해지
