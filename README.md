@@ -11,8 +11,8 @@ Vercel 프로젝트의 Settings → Environment Variables에 아래 값을 모�
 | SUPABASE_SERVICE_ROLE_KEY | Supabase service role key (절대 외부 노출 금지) |
 | ECOS_API_KEY | 한국은행 ECOS API 인증키 |
 | OPENROUTER_API_KEY | OpenRouter API 키 |
-| RESEND_API_KEY | Resend API 키 |
-| RESEND_FROM_EMAIL | Resend에 등록/인증한 발신 이메일 주소 |
+| GMAIL_USER | 발신용 구글 이메일 주소 |
+| GMAIL_APP_PASSWORD | 구글 계정 2단계 인증 켠 뒤 발급한 앱 비밀번호 (일반 로그인 비밀번호 아님) |
 | CRON_SECRET | 임의의 긴 랜덤 문자열 (Cron 요청 인증용) |
 | NEXT_PUBLIC_SITE_URL | 이메일 내 확인/해지 링크를 만들 때 사용하는 배포 도메인 (예: https://bond-yield-dashboard.vercel.app) |
 
@@ -24,6 +24,8 @@ Vercel 프로젝트의 Settings → Environment Variables에 아래 값을 모�
 4. 위 표의 환경 변수를 모두 등록
 5. Deploy
 6. 배포 완료 후 실제 URL로 접속해 아래 "배포 후 테스트" 항목을 확인
+
+> **Gmail 앱 비밀번호 발급 방법**: 구글 계정 → 보안 → 2단계 인증 켜기(필수) → "앱 비밀번호" 검색 → 이름 임의 입력 후 생성 → 16자리 비밀번호를 `GMAIL_APP_PASSWORD`에 (공백 없이) 붙여넣기. 일반 로그인 비밀번호를 넣으면 인증이 거부됩니다.
 
 > **`holidays` 테이블은 배포 직후 비어 있습니다.** 관리자가 Supabase 테이블 편집기에서 한국 공휴일 데이터를 직접 입력하기 전까지는, 반복 이메일 다이제스트 cron이 공휴일에도 계속 발송됩니다.
 

@@ -7,7 +7,7 @@ vi.mock('@/lib/rates', async () => {
     getRateSeries: vi.fn().mockResolvedValue([{ date: '2026-07-27', instrument: 'treasury_3y', yield_pct: 2.85 }]),
   }
 })
-vi.mock('@/lib/resend', () => ({ sendRatesEmail: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('@/lib/gmail', () => ({ sendRatesEmail: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/rateLimit', () => ({
   checkEmailRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 4 }),
   recordEmailSend: vi.fn().mockResolvedValue(undefined),
@@ -63,9 +63,9 @@ describe('POST /api/export/email', () => {
   })
 
   it('records the send attempt even when sendRatesEmail throws, to prevent retry-flood past the rate limit', async () => {
-    const { sendRatesEmail } = await import('@/lib/resend')
+    const { sendRatesEmail } = await import('@/lib/gmail')
     const { recordEmailSend } = await import('@/lib/rateLimit')
-    vi.mocked(sendRatesEmail).mockRejectedValueOnce(new Error('resend down'))
+    vi.mocked(sendRatesEmail).mockRejectedValueOnce(new Error('gmail down'))
 
     const { POST } = await import('../email/route')
     const res = await POST(makeRequest({ email: 'user@example.com', instruments: ['treasury_3y'], period: '1y' }))

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createPendingSubscriber } from '@/lib/subscribers'
-import { sendConfirmationEmail } from '@/lib/resend'
+import { sendConfirmationEmail } from '@/lib/gmail'
 import { checkEmailRateLimit, recordEmailSend } from '@/lib/rateLimit'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

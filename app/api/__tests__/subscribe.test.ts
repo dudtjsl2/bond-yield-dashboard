@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 vi.mock('@/lib/subscribers', () => ({
   createPendingSubscriber: vi.fn().mockResolvedValue({ ok: true, token: 'test-token' }),
 }))
-vi.mock('@/lib/resend', () => ({ sendConfirmationEmail: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('@/lib/gmail', () => ({ sendConfirmationEmail: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/rateLimit', () => ({
   checkEmailRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 4 }),
   recordEmailSend: vi.fn().mockResolvedValue(undefined),
@@ -34,7 +34,7 @@ describe('POST /api/subscribe', () => {
   })
 
   it('sends a confirmation email and returns ok:true on success', async () => {
-    const { sendConfirmationEmail } = await import('@/lib/resend')
+    const { sendConfirmationEmail } = await import('@/lib/gmail')
     const { POST } = await import('../subscribe/route')
     const res = await POST(makeRequest({ email: 'user@example.com' }))
     const body = await res.json()
@@ -70,8 +70,8 @@ describe('POST /api/subscribe', () => {
   })
 
   it('returns 500 when the confirmation email fails to send', async () => {
-    const { sendConfirmationEmail } = await import('@/lib/resend')
-    vi.mocked(sendConfirmationEmail).mockRejectedValueOnce(new Error('resend down'))
+    const { sendConfirmationEmail } = await import('@/lib/gmail')
+    vi.mocked(sendConfirmationEmail).mockRejectedValueOnce(new Error('gmail down'))
     const { POST } = await import('../subscribe/route')
     const res = await POST(makeRequest({ email: 'user@example.com' }))
     expect(res.status).toBe(500)

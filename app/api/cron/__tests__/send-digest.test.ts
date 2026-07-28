@@ -7,7 +7,7 @@ vi.mock('@/lib/subscribers', () => ({
     { email: 'b@example.com', confirm_token: 'token-b' },
   ]),
 }))
-vi.mock('@/lib/resend', () => ({ sendDigestEmail: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('@/lib/gmail', () => ({ sendDigestEmail: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('@/lib/rates', async () => {
   const actual = await vi.importActual<typeof import('@/lib/rates')>('@/lib/rates')
   return {
@@ -38,7 +38,7 @@ describe('GET /api/cron/send-digest', () => {
   it('skips sending when today is a holiday', async () => {
     const { isHoliday } = await import('@/lib/holidays')
     vi.mocked(isHoliday).mockResolvedValueOnce(true)
-    const { sendDigestEmail } = await import('@/lib/resend')
+    const { sendDigestEmail } = await import('@/lib/gmail')
 
     const { GET } = await import('../send-digest/route')
     const res = await GET(makeRequest())
@@ -59,9 +59,9 @@ describe('GET /api/cron/send-digest', () => {
   })
 
   it('isolates a send failure to that subscriber and keeps going', async () => {
-    const { sendDigestEmail } = await import('@/lib/resend')
+    const { sendDigestEmail } = await import('@/lib/gmail')
     vi.mocked(sendDigestEmail)
-      .mockRejectedValueOnce(new Error('resend down'))
+      .mockRejectedValueOnce(new Error('gmail down'))
       .mockResolvedValueOnce(undefined)
 
     const { GET } = await import('../send-digest/route')

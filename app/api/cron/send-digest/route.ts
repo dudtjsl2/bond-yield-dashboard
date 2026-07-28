@@ -4,7 +4,7 @@ import { getRateSeries } from '@/lib/rates'
 import { buildRatesWorkbook } from '@/lib/excel'
 import { isHoliday } from '@/lib/holidays'
 import { getConfirmedSubscribers } from '@/lib/subscribers'
-import { sendDigestEmail } from '@/lib/resend'
+import { sendDigestEmail } from '@/lib/gmail'
 
 function todayKstISODate(): string {
   const now = new Date()
