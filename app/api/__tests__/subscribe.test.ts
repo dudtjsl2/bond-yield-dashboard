@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@/lib/subscribers', () => ({
   createPendingSubscriber: vi.fn().mockResolvedValue({ ok: true, token: 'test-token' }),
@@ -18,7 +18,14 @@ function makeRequest(body: unknown) {
 }
 
 describe('POST /api/subscribe', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://example.com'
+  })
+
+  afterEach(() => {
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://example.com'
+  })
 
   it('rejects an invalid email address', async () => {
     const { POST } = await import('../subscribe/route')
@@ -65,6 +72,13 @@ describe('POST /api/subscribe', () => {
   it('returns 500 when the confirmation email fails to send', async () => {
     const { sendConfirmationEmail } = await import('@/lib/resend')
     vi.mocked(sendConfirmationEmail).mockRejectedValueOnce(new Error('resend down'))
+    const { POST } = await import('../subscribe/route')
+    const res = await POST(makeRequest({ email: 'user@example.com' }))
+    expect(res.status).toBe(500)
+  })
+
+  it('returns 500 when NEXT_PUBLIC_SITE_URL is not set', async () => {
+    delete process.env.NEXT_PUBLIC_SITE_URL
     const { POST } = await import('../subscribe/route')
     const res = await POST(makeRequest({ email: 'user@example.com' }))
     expect(res.status).toBe(500)

@@ -25,6 +25,7 @@ function makeRequest() {
 describe('GET /api/cron/send-digest', () => {
   beforeEach(() => {
     process.env.CRON_SECRET = 'test-secret'
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://example.com'
     vi.clearAllMocks()
   })
 
@@ -69,5 +70,12 @@ describe('GET /api/cron/send-digest', () => {
 
     expect(body.sent).toEqual(['b@example.com'])
     expect(body.failed).toEqual(['a@example.com'])
+  })
+
+  it('returns 500 when NEXT_PUBLIC_SITE_URL is not set', async () => {
+    delete process.env.NEXT_PUBLIC_SITE_URL
+    const { GET } = await import('../send-digest/route')
+    const res = await GET(makeRequest())
+    expect(res.status).toBe(500)
   })
 })

@@ -40,6 +40,7 @@ export async function confirmSubscriber(token: string): Promise<boolean> {
     .from('email_subscribers')
     .update({ status: 'confirmed' })
     .eq('confirm_token', token)
+    .eq('status', 'pending')
     .select('email')
 
   if (error) {

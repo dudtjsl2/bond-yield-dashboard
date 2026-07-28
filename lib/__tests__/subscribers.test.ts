@@ -64,22 +64,38 @@ describe('confirmSubscriber', () => {
 
   it('confirms the subscriber matching the token and returns true', async () => {
     const selectMock = vi.fn().mockResolvedValue({ data: [{ email: 'a@example.com' }], error: null })
+    const statusEqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const tokenEqMock = vi.fn().mockReturnValue({ eq: statusEqMock })
     fromMock.mockReturnValue({
-      update: () => ({ eq: () => ({ select: selectMock }) }),
+      update: () => ({ eq: tokenEqMock }),
     })
 
     const { confirmSubscriber } = await import('../subscribers')
     expect(await confirmSubscriber('valid-token')).toBe(true)
+    expect(tokenEqMock).toHaveBeenCalledWith('confirm_token', 'valid-token')
+    expect(statusEqMock).toHaveBeenCalledWith('status', 'pending')
   })
 
   it('returns false when no row matches the token', async () => {
     const selectMock = vi.fn().mockResolvedValue({ data: [], error: null })
     fromMock.mockReturnValue({
-      update: () => ({ eq: () => ({ select: selectMock }) }),
+      update: () => ({ eq: () => ({ eq: () => ({ select: selectMock }) }) }),
     })
 
     const { confirmSubscriber } = await import('../subscribers')
     expect(await confirmSubscriber('bad-token')).toBe(false)
+  })
+
+  it('does not resurrect a subscriber who already unsubscribed', async () => {
+    // The status guard means the update matches zero rows for a token whose
+    // subscriber already unsubscribed, even though the token itself is valid.
+    const selectMock = vi.fn().mockResolvedValue({ data: [], error: null })
+    fromMock.mockReturnValue({
+      update: () => ({ eq: () => ({ eq: () => ({ select: selectMock }) }) }),
+    })
+
+    const { confirmSubscriber } = await import('../subscribers')
+    expect(await confirmSubscriber('previously-unsubscribed-token')).toBe(false)
   })
 })
 

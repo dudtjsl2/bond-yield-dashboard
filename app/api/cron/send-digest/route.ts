@@ -23,6 +23,13 @@ export async function GET(req: Request) {
   }
 
   const today = todayKstISODate()
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  if (!siteUrl) {
+    console.error('Missing env var: NEXT_PUBLIC_SITE_URL')
+    return NextResponse.json({ date: today, error: 'missing NEXT_PUBLIC_SITE_URL' }, { status: 500 })
+  }
+
   if (await isHoliday(today)) {
     return NextResponse.json({ date: today, skipped: 'holiday', sent: [], failed: [] })
   }
@@ -35,7 +42,6 @@ export async function GET(req: Request) {
   const allCodes = INSTRUMENTS.map((i) => i.code)
   const rows = await getRateSeries(allCodes, '5y')
   const buffer = buildRatesWorkbook(rows, INSTRUMENTS)
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
 
   const sent: string[] = []
   const failed: string[] = []
