@@ -19,7 +19,8 @@ export function buildRatesWorkbook(rows: Row[], instruments: Instrument[]): Buff
   }
 
   const columnOrder = ['날짜', ...presentCodes.map((code) => labelByCode.get(code) ?? code)]
-  const sheetRows = Array.from(byDate.values()).sort((a, b) => String(a.날짜).localeCompare(String(b.날짜)))
+  // Descending — most recent date first.
+  const sheetRows = Array.from(byDate.values()).sort((a, b) => String(b.날짜).localeCompare(String(a.날짜)))
 
   const worksheet = XLSX.utils.json_to_sheet(sheetRows, { header: columnOrder })
   const workbook = XLSX.utils.book_new()
