@@ -49,10 +49,11 @@ export async function sendRatesEmail(
 ): Promise<void> {
   const transporter = getTransporter()
   try {
+    const subject = latest ? `국고채·통안채·CD 금리 데이터 (${latest.date} 기준)` : '국고채·통안채·CD 금리 데이터'
     await transporter.sendMail({
       to,
       from: process.env.GMAIL_USER,
-      subject: '국고채·통안채·CD 금리 데이터',
+      subject,
       html: `<p>요청하신 금리 데이터를 첨부파일로 보내드립니다.</p>${buildLatestTableHtml(latest)}`,
       attachments: [{ filename, content: buffer }],
     })
@@ -83,10 +84,13 @@ export async function sendDigestEmail(
 ): Promise<void> {
   const transporter = getTransporter()
   try {
+    const subject = latest
+      ? `국고채·통안채·CD 금리 데이터 (${latest.date} 기준, 매영업일 자동 발송)`
+      : '국고채·통안채·CD 금리 데이터 (매영업일 자동 발송)'
     await transporter.sendMail({
       to,
       from: process.env.GMAIL_USER,
-      subject: '국고채·통안채·CD 금리 데이터 (매영업일 자동 발송)',
+      subject,
       html:
         `<p>매영업일 자동 발송 데이터입니다.</p>${buildLatestTableHtml(latest)}` +
         `<p><a href="${unsubscribeUrl}">구독 해지</a></p>`,

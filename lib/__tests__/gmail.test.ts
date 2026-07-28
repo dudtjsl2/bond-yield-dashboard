@@ -24,6 +24,7 @@ describe('sendRatesEmail', () => {
       expect.objectContaining({
         to: 'user@example.com',
         from: 'sender@gmail.com',
+        subject: expect.stringContaining('2026-07-28'),
         html: expect.stringContaining('2026-07-28'),
         attachments: [expect.objectContaining({ filename: 'rates.xlsx' })],
       })
@@ -33,12 +34,13 @@ describe('sendRatesEmail', () => {
     expect(html).toContain('3.15')
   })
 
-  it('omits the table when there is no latest data', async () => {
+  it('omits the table and date suffix when there is no latest data', async () => {
     const { sendRatesEmail } = await import('../gmail')
     await sendRatesEmail('user@example.com', Buffer.from('fake-xlsx'), 'rates.xlsx', null)
 
-    const html = sendMailMock.mock.calls[0][0].html
-    expect(html).not.toContain('<table')
+    const call = sendMailMock.mock.calls[0][0]
+    expect(call.html).not.toContain('<table')
+    expect(call.subject).toBe('국고채·통안채·CD 금리 데이터')
   })
 
   it('throws when nodemailer rejects', async () => {
@@ -90,6 +92,7 @@ describe('sendDigestEmail', () => {
     expect(sendMailMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'user@example.com',
+        subject: expect.stringContaining('2026-07-28'),
         html: expect.stringContaining('https://example.com/api/unsubscribe?token=abc'),
         attachments: [expect.objectContaining({ filename: 'bond-yields-5y.xlsx' })],
       })
