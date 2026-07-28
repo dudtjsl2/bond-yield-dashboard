@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { fetchEcosRate as fetchEcosRateMock } from '@/lib/ecos'
 
 const upsertMock = vi.fn().mockResolvedValue({ error: null })
 
@@ -113,5 +114,25 @@ describe('GET /api/cron/update-rates', () => {
     expect(body.summaryStatus).toBe('failed')
 
     upsertMock.mockResolvedValue({ error: null })
+  })
+
+  it('fetches the overridden date when a valid ?date= param is given', async () => {
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates?date=20260726', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    await GET(req)
+
+    expect(fetchEcosRateMock).toHaveBeenCalledWith(expect.anything(), '20260726')
+  })
+
+  it('ignores a malformed ?date= param and falls back to today', async () => {
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates?date=not-a-date', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    await GET(req)
+
+    expect(fetchEcosRateMock).not.toHaveBeenCalledWith(expect.anything(), 'not-a-date')
   })
 })

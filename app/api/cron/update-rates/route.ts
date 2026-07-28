@@ -13,6 +13,10 @@ function todayKstYYYYMMDD(): string {
   return `${y}${m}${d}`
 }
 
+// Vercel Cron never sends a `date` param, so the daily automatic run is
+// unaffected. This override exists only for manual re-runs/testing against
+// a specific past date (e.g. re-generating a summary for a date the
+// backfill already populated).
 export async function GET(req: Request) {
   const auth = req.headers.get('authorization')
   const secret = process.env.CRON_SECRET
@@ -20,7 +24,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  const dateYYYYMMDD = todayKstYYYYMMDD()
+  const { searchParams } = new URL(req.url)
+  const dateOverride = searchParams.get('date')
+  const dateYYYYMMDD = dateOverride && /^\d{8}$/.test(dateOverride) ? dateOverride : todayKstYYYYMMDD()
   const supabase = getSupabaseAdmin()
 
   const updated: string[] = []
