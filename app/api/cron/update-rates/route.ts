@@ -110,10 +110,30 @@ export async function GET(req: Request) {
     }
   }
 
+  let digestStatus: 'triggered' | 'failed' | 'skipped-no-data' | 'skipped-no-url' = 'skipped-no-data'
+
+  if (updated.length > 0) {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
+    if (!siteUrl) {
+      digestStatus = 'skipped-no-url'
+    } else {
+      try {
+        const res = await fetch(`${siteUrl}/api/cron/send-digest`, {
+          headers: { Authorization: `Bearer ${secret}` },
+        })
+        digestStatus = res.ok ? 'triggered' : 'failed'
+      } catch (err) {
+        console.error('다이제스트 이메일 발송 트리거 실패:', err)
+        digestStatus = 'failed'
+      }
+    }
+  }
+
   return NextResponse.json({
     date: isoDate,
     updated,
     skipped,
     summaryStatus,
+    digestStatus,
   })
 }
