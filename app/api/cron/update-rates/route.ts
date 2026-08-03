@@ -57,74 +57,87 @@ export async function GET(req: Request) {
   }
 
   const isoDate = `${dateYYYYMMDD.slice(0, 4)}-${dateYYYYMMDD.slice(4, 6)}-${dateYYYYMMDD.slice(6, 8)}`
-  let summaryStatus: 'ok' | 'failed' | 'skipped' = 'skipped'
+  let summaryStatus: 'ok' | 'failed' | 'skipped-incomplete' | 'already-done' = 'skipped-incomplete'
+  let digestStatus: 'triggered' | 'failed' | 'skipped-incomplete' | 'skipped-no-url' | 'already-done' =
+    'skipped-incomplete'
 
-  if (updated.length > 0) {
-    try {
-      const { data: todayRows } = await supabase
-        .from('bond_yields')
-        .select('instrument, yield_pct')
-        .eq('date', isoDate)
+  // 이 cron은 16:30~17:30 KST 사이 매분 재시도된다(vercel.json 참고). ECOS가 그날치 데이터를
+  // 전부 내려주기 전까지는 요약·다이제스트를 건너뛰고, daily_summary에 그날 행이 이미 있으면
+  // (=한 번 완결 처리됨) 매분 재실행되어도 요약 재생성·이메일 재발송을 하지 않는다.
+  const { data: existingSummaryRows } = await supabase
+    .from('daily_summary')
+    .select('date')
+    .eq('date', isoDate)
 
-      // Find the single most recent prior date first, then fetch all rows for
-      // exactly that date. Avoids mixing rows from more than one calendar
-      // date (which could otherwise let an older date's value silently
-      // override a newer one for a given instrument in the Map below).
-      const { data: prevDateRows } = await supabase
-        .from('bond_yields')
-        .select('date')
-        .lt('date', isoDate)
-        .order('date', { ascending: false })
-        .limit(1)
+  if (existingSummaryRows && existingSummaryRows.length > 0) {
+    summaryStatus = 'already-done'
+    digestStatus = 'already-done'
+  } else {
+    const { data: todayRows } = await supabase
+      .from('bond_yields')
+      .select('instrument, yield_pct')
+      .eq('date', isoDate)
 
-      const prevDate = prevDateRows?.[0]?.date ?? null
-      const { data: yesterdayRows } = prevDate
-        ? await supabase.from('bond_yields').select('instrument, yield_pct').eq('date', prevDate)
-        : { data: [] as { instrument: string; yield_pct: number }[] }
+    const isComplete = (todayRows ?? []).length >= INSTRUMENTS.length
 
-      const prevByInstrument = new Map((yesterdayRows ?? []).map((r) => [r.instrument, r.yield_pct]))
-      const summaryRows = (todayRows ?? []).map((r) => {
-        const inst = INSTRUMENTS.find((i) => i.code === r.instrument)
-        return {
-          instrument: r.instrument,
-          label: inst?.label ?? r.instrument,
-          yield_pct: r.yield_pct,
-          prevYieldPct: prevByInstrument.get(r.instrument) ?? null,
-        }
-      })
-
-      const summaryText = await generateDailySummary(summaryRows, isoDate)
-      const { error: summaryError } = await supabase
-        .from('daily_summary')
-        .upsert({ date: isoDate, summary_text: summaryText })
-
-      if (summaryError) {
-        console.error('AI 요약 저장 실패:', summaryError)
-        summaryStatus = 'failed'
-      } else {
-        summaryStatus = 'ok'
-      }
-    } catch (err) {
-      console.error('AI 요약 생성 실패:', err)
-      summaryStatus = 'failed'
-    }
-  }
-
-  let digestStatus: 'triggered' | 'failed' | 'skipped-no-data' | 'skipped-no-url' = 'skipped-no-data'
-
-  if (updated.length > 0) {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
-    if (!siteUrl) {
-      digestStatus = 'skipped-no-url'
-    } else {
+    if (isComplete) {
       try {
-        const res = await fetch(`${siteUrl}/api/cron/send-digest`, {
-          headers: { Authorization: `Bearer ${secret}` },
+        // Find the single most recent prior date first, then fetch all rows for
+        // exactly that date. Avoids mixing rows from more than one calendar
+        // date (which could otherwise let an older date's value silently
+        // override a newer one for a given instrument in the Map below).
+        const { data: prevDateRows } = await supabase
+          .from('bond_yields')
+          .select('date')
+          .lt('date', isoDate)
+          .order('date', { ascending: false })
+          .limit(1)
+
+        const prevDate = prevDateRows?.[0]?.date ?? null
+        const { data: yesterdayRows } = prevDate
+          ? await supabase.from('bond_yields').select('instrument, yield_pct').eq('date', prevDate)
+          : { data: [] as { instrument: string; yield_pct: number }[] }
+
+        const prevByInstrument = new Map((yesterdayRows ?? []).map((r) => [r.instrument, r.yield_pct]))
+        const summaryRows = (todayRows ?? []).map((r) => {
+          const inst = INSTRUMENTS.find((i) => i.code === r.instrument)
+          return {
+            instrument: r.instrument,
+            label: inst?.label ?? r.instrument,
+            yield_pct: r.yield_pct,
+            prevYieldPct: prevByInstrument.get(r.instrument) ?? null,
+          }
         })
-        digestStatus = res.ok ? 'triggered' : 'failed'
+
+        const summaryText = await generateDailySummary(summaryRows, isoDate)
+        const { error: summaryError } = await supabase
+          .from('daily_summary')
+          .upsert({ date: isoDate, summary_text: summaryText })
+
+        if (summaryError) {
+          console.error('AI 요약 저장 실패:', summaryError)
+          summaryStatus = 'failed'
+        } else {
+          summaryStatus = 'ok'
+        }
       } catch (err) {
-        console.error('다이제스트 이메일 발송 트리거 실패:', err)
-        digestStatus = 'failed'
+        console.error('AI 요약 생성 실패:', err)
+        summaryStatus = 'failed'
+      }
+
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
+      if (!siteUrl) {
+        digestStatus = 'skipped-no-url'
+      } else {
+        try {
+          const res = await fetch(`${siteUrl}/api/cron/send-digest`, {
+            headers: { Authorization: `Bearer ${secret}` },
+          })
+          digestStatus = res.ok ? 'triggered' : 'failed'
+        } catch (err) {
+          console.error('다이제스트 이메일 발송 트리거 실패:', err)
+          digestStatus = 'failed'
+        }
       }
     }
   }
