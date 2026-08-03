@@ -7,6 +7,8 @@ export type Instrument = {
 
 // ECOS StatisticItemList API(817Y002)로 2026-07-27 실제 확인한 코드
 export const INSTRUMENTS: Instrument[] = [
+  { code: 'treasury_1y', label: '국고채 1년', ecosStatCode: '817Y002', ecosItemCode1: '010190000' },
+  { code: 'treasury_2y', label: '국고채 2년', ecosStatCode: '817Y002', ecosItemCode1: '010195000' },
   { code: 'treasury_3y', label: '국고채 3년', ecosStatCode: '817Y002', ecosItemCode1: '010200000' },
   { code: 'treasury_5y', label: '국고채 5년', ecosStatCode: '817Y002', ecosItemCode1: '010200001' },
   { code: 'treasury_10y', label: '국고채 10년', ecosStatCode: '817Y002', ecosItemCode1: '010210000' },
