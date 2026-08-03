@@ -1,15 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fetchEcosRate as fetchEcosRateMock } from '@/lib/ecos'
+import { generateDailySummary as generateDailySummaryMock } from '@/lib/openrouter'
+import { INSTRUMENTS } from '@/lib/instruments'
 
 const upsertMock = vi.fn().mockResolvedValue({ error: null })
 
 const limitMock = vi.fn().mockResolvedValue({ data: [], error: null })
 const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
 const ltMock = vi.fn().mockReturnValue({ order: orderMock })
-const eqMock = vi.fn().mockResolvedValue({ data: [], error: null })
-const selectMock = vi.fn().mockReturnValue({ eq: eqMock, lt: ltMock })
+const bondYieldsEqMock = vi.fn().mockResolvedValue({ data: [], error: null })
+const bondYieldsSelectMock = vi.fn().mockReturnValue({ eq: bondYieldsEqMock, lt: ltMock })
+const bondYieldsFrom = { upsert: upsertMock, select: bondYieldsSelectMock }
 
-const fromMock = vi.fn().mockReturnValue({ upsert: upsertMock, select: selectMock })
+const dailySummaryUpsertMock = vi.fn().mockResolvedValue({ error: null })
+const dailySummaryEqMock = vi.fn().mockResolvedValue({ data: [], error: null })
+const dailySummarySelectMock = vi.fn().mockReturnValue({ eq: dailySummaryEqMock })
+const dailySummaryFrom = { upsert: dailySummaryUpsertMock, select: dailySummarySelectMock }
+
+const fromMock = vi.fn((table: string) => (table === 'daily_summary' ? dailySummaryFrom : bondYieldsFrom))
 
 vi.mock('@/lib/supabase', () => ({
   getSupabaseAdmin: () => ({ from: fromMock }),
@@ -27,16 +35,26 @@ vi.mock('@/lib/openrouter', () => ({
   generateDailySummary: vi.fn().mockResolvedValue('오늘의 요약입니다.'),
 }))
 
+function allInstrumentsRows() {
+  return INSTRUMENTS.map((i) => ({ instrument: i.code, yield_pct: 3.0 }))
+}
+
 describe('GET /api/cron/update-rates', () => {
   beforeEach(() => {
     process.env.CRON_SECRET = 'test-secret'
-    upsertMock.mockClear()
+    upsertMock.mockClear().mockResolvedValue({ error: null })
+    dailySummaryUpsertMock.mockClear().mockResolvedValue({ error: null })
     fromMock.mockClear()
-    selectMock.mockClear()
-    eqMock.mockClear()
+    bondYieldsSelectMock.mockClear()
+    bondYieldsEqMock.mockClear().mockResolvedValue({ data: [], error: null })
+    dailySummarySelectMock.mockClear()
+    dailySummaryEqMock.mockClear().mockResolvedValue({ data: [], error: null })
     ltMock.mockClear()
     orderMock.mockClear()
     limitMock.mockClear()
+    vi.mocked(generateDailySummaryMock).mockClear()
+    delete process.env.NEXT_PUBLIC_SITE_URL
+    delete process.env.VERCEL_URL
   })
 
   it('rejects requests without the correct bearer token', async () => {
@@ -92,15 +110,43 @@ describe('GET /api/cron/update-rates', () => {
     })
     const res = await GET(req)
     const body = await res.json()
-    expect(['ok', 'failed', 'skipped']).toContain(body.summaryStatus)
+    expect(['ok', 'failed', 'skipped-incomplete', 'already-done']).toContain(body.summaryStatus)
+  })
+
+  it('does not generate a summary yet while today\'s data is still incomplete (retry-until-complete)', async () => {
+    // bondYieldsEqMock (today rows) 기본값은 빈 배열 → INSTRUMENTS 전체가 아직 안 모인 상태
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(body.summaryStatus).toBe('skipped-incomplete')
+    expect(body.digestStatus).toBe('skipped-incomplete')
+    expect(generateDailySummaryMock).not.toHaveBeenCalled()
+    expect(dailySummaryUpsertMock).not.toHaveBeenCalled()
+  })
+
+  it('generates the summary once every instrument has a row for today', async () => {
+    bondYieldsEqMock.mockResolvedValue({ data: allInstrumentsRows(), error: null })
+
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(body.summaryStatus).toBe('ok')
+    expect(generateDailySummaryMock).toHaveBeenCalled()
+    expect(dailySummaryUpsertMock).toHaveBeenCalled()
   })
 
   it('sets summaryStatus to failed when the daily_summary upsert resolves with an error', async () => {
-    upsertMock.mockImplementation((payload: Record<string, unknown>) => {
-      if ('summary_text' in payload) {
-        return Promise.resolve({ error: { message: 'permission denied for table daily_summary' } })
-      }
-      return Promise.resolve({ error: null })
+    bondYieldsEqMock.mockResolvedValue({ data: allInstrumentsRows(), error: null })
+    dailySummaryUpsertMock.mockResolvedValueOnce({
+      error: { message: 'permission denied for table daily_summary' },
     })
 
     const { GET } = await import('../route')
@@ -112,8 +158,23 @@ describe('GET /api/cron/update-rates', () => {
 
     expect(res.status).toBe(200)
     expect(body.summaryStatus).toBe('failed')
+  })
 
-    upsertMock.mockResolvedValue({ error: null })
+  it('skips re-generating the summary and re-triggering the digest once today is already marked done', async () => {
+    bondYieldsEqMock.mockResolvedValue({ data: allInstrumentsRows(), error: null })
+    dailySummaryEqMock.mockResolvedValue({ data: [{ date: '2026-07-27' }], error: null })
+
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(body.summaryStatus).toBe('already-done')
+    expect(body.digestStatus).toBe('already-done')
+    expect(generateDailySummaryMock).not.toHaveBeenCalled()
+    expect(dailySummaryUpsertMock).not.toHaveBeenCalled()
   })
 
   it('fetches the overridden date when a valid ?date= param is given', async () => {

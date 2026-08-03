@@ -2,7 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/update-rates",
-      "schedule": "0 8 * * *"
+      "schedule": "30-59 7 * * *"
+    },
+    {
+      "path": "/api/cron/update-rates",
+      "schedule": "0-30 8 * * *"
     }
   ]
 }
