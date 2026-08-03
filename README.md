@@ -14,7 +14,7 @@ Vercel 프로젝트의 Settings → Environment Variables에 아래 값을 모�
 | GMAIL_USER | 발신용 구글 이메일 주소 |
 | GMAIL_APP_PASSWORD | 구글 계정 2단계 인증 켠 뒤 발급한 앱 비밀번호 (일반 로그인 비밀번호 아님) |
 | CRON_SECRET | 임의의 긴 랜덤 문자열 (Cron 요청 인증용) |
-| NEXT_PUBLIC_SITE_URL | (선택) 자동 발송 메일 본문에 넣을 사이트 주소, 미설정 시 링크 줄만 빠짐 |
+| NEXT_PUBLIC_SITE_URL | (선택) 자동 발송 메일 본문에 넣을 사이트 주소. `update-rates`가 완료 직후 이메일 발송을 트리거할 때도 이 주소를 사용하며, 미설정 시 Vercel이 자동 주입하는 `VERCEL_URL`로 대체됨 |
 
 ## 배포 절차
 
