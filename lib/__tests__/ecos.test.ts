@@ -88,4 +88,30 @@ describe('fetchEcosRateRange', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }))
     await expect(fetchEcosRateRange(INSTRUMENTS[0], '20210727', '20260727')).rejects.toThrow(/ECOS/)
   })
+
+  it('pages through results when a single page is full (3000 rows)', async () => {
+    const fullPage = {
+      StatisticSearch: {
+        row: Array.from({ length: 3000 }, (_, i) => ({ TIME: `2000${String(i).padStart(4, '0')}`, DATA_VALUE: '3.0' })),
+      },
+    }
+    const lastPage = {
+      StatisticSearch: {
+        row: [{ TIME: '20260727', DATA_VALUE: '2.85' }],
+      },
+    }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => fullPage })
+      .mockResolvedValueOnce({ ok: true, json: async () => lastPage })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await fetchEcosRateRange(INSTRUMENTS[0], '20000101', '20260727')
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0][0]).toContain('/1/3000/')
+    expect(fetchMock.mock.calls[1][0]).toContain('/3001/6000/')
+    expect(result).toHaveLength(3001)
+    expect(result[3000]).toEqual({ date: '20260727', value: 2.85 })
+  })
 })

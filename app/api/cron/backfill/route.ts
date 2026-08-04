@@ -22,10 +22,20 @@ function yearsAgoKstYYYYMMDD(years: number): string {
   return `${y}${m}${d}`
 }
 
+const UPSERT_CHUNK_SIZE = 1000
+
 // One-time manual backfill — NOT wired into the daily Vercel Cron schedule.
 // Trigger by hand once (same Authorization header as /api/cron/update-rates)
 // to populate history for a dashboard that has no data yet. The daily
 // update-rates route is untouched and keeps fetching only "today" as before.
+//
+// Optional query params for a targeted re-run (e.g. backfilling a newly
+// added instrument's full available history instead of every instrument's
+// last 5 years):
+//   ?instruments=treasury_1y,treasury_2y  — only these instrument codes
+//   ?start=19900101                       — custom start date (YYYYMMDD).
+//     ECOS simply returns whatever data actually exists from its real start
+//     date onward, so an earlier-than-actual start date is safe to pass.
 export async function GET(req: Request) {
   const auth = req.headers.get('authorization')
   const secret = process.env.CRON_SECRET
@@ -33,15 +43,22 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
+  const { searchParams } = new URL(req.url)
+  const instrumentCodes = searchParams.get('instruments')?.split(',').map((c) => c.trim())
+  const instruments = instrumentCodes
+    ? INSTRUMENTS.filter((i) => instrumentCodes.includes(i.code))
+    : INSTRUMENTS
+
+  const startOverride = searchParams.get('start')
   const endYYYYMMDD = todayKstYYYYMMDD()
-  const startYYYYMMDD = yearsAgoKstYYYYMMDD(5)
+  const startYYYYMMDD = startOverride && /^\d{8}$/.test(startOverride) ? startOverride : yearsAgoKstYYYYMMDD(5)
   const supabase = getSupabaseAdmin()
 
   const updated: string[] = []
   const skipped: string[] = []
   let totalRows = 0
 
-  for (const instrument of INSTRUMENTS) {
+  for (const instrument of instruments) {
     try {
       const rows = await fetchEcosRateRange(instrument, startYYYYMMDD, endYYYYMMDD)
       if (rows.length === 0) {
@@ -55,11 +72,17 @@ export async function GET(req: Request) {
         yield_pct: r.value,
       }))
 
-      const { error } = await supabase
-        .from('bond_yields')
-        .upsert(payload, { onConflict: 'date,instrument' })
+      let hadError = false
+      for (let i = 0; i < payload.length; i += UPSERT_CHUNK_SIZE) {
+        const chunk = payload.slice(i, i + UPSERT_CHUNK_SIZE)
+        const { error } = await supabase.from('bond_yields').upsert(chunk, { onConflict: 'date,instrument' })
+        if (error) {
+          hadError = true
+          break
+        }
+      }
 
-      if (error) {
+      if (hadError) {
         skipped.push(instrument.code)
         continue
       }
