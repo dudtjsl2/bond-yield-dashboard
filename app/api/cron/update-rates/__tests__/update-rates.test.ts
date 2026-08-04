@@ -53,6 +53,7 @@ describe('GET /api/cron/update-rates', () => {
     orderMock.mockClear()
     limitMock.mockClear()
     vi.mocked(generateDailySummaryMock).mockClear()
+    vi.mocked(fetchEcosRateMock).mockClear()
     delete process.env.NEXT_PUBLIC_SITE_URL
     delete process.env.VERCEL_URL
   })
@@ -128,7 +129,7 @@ describe('GET /api/cron/update-rates', () => {
     expect(dailySummaryUpsertMock).not.toHaveBeenCalled()
   })
 
-  it('generates the summary once every instrument has a row for today', async () => {
+  it('generates the summary once every instrument has a row for today, without calling ECOS again', async () => {
     bondYieldsEqMock.mockResolvedValue({ data: allInstrumentsRows(), error: null })
 
     const { GET } = await import('../route')
@@ -141,6 +142,25 @@ describe('GET /api/cron/update-rates', () => {
     expect(body.summaryStatus).toBe('ok')
     expect(generateDailySummaryMock).toHaveBeenCalled()
     expect(dailySummaryUpsertMock).toHaveBeenCalled()
+    // 오늘치가 이미 전부 확인된 상태라 ECOS는 한 번도 조회하지 않아야 함
+    expect(fetchEcosRateMock).not.toHaveBeenCalled()
+  })
+
+  it('only queries ECOS for instruments that are still missing today\'s row', async () => {
+    const [missing, ...alreadyConfirmed] = INSTRUMENTS
+    bondYieldsEqMock.mockResolvedValue({
+      data: alreadyConfirmed.map((i) => ({ instrument: i.code, yield_pct: 3.0 })),
+      error: null,
+    })
+
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    await GET(req)
+
+    expect(fetchEcosRateMock).toHaveBeenCalledTimes(1)
+    expect(fetchEcosRateMock).toHaveBeenCalledWith(missing, expect.anything())
   })
 
   it('sets summaryStatus to failed when the daily_summary upsert resolves with an error', async () => {
@@ -175,6 +195,8 @@ describe('GET /api/cron/update-rates', () => {
     expect(body.digestStatus).toBe('already-done')
     expect(generateDailySummaryMock).not.toHaveBeenCalled()
     expect(dailySummaryUpsertMock).not.toHaveBeenCalled()
+    // 이미 완결된 날짜라 ECOS 조회를 아예 시도하지 않아야 함
+    expect(fetchEcosRateMock).not.toHaveBeenCalled()
   })
 
   it('fetches the overridden date when a valid ?date= param is given', async () => {
