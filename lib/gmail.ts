@@ -92,8 +92,7 @@ export async function sendDigestEmail(to: string, buffer: Buffer, latest: Latest
       subject,
       html:
         `<p>매영업일 자동 발송 데이터입니다.</p>${buildLatestTableHtml(latest)}` +
-        (siteUrl ? `<p>사이트 바로가기: <a href="${siteUrl}">${siteUrl}</a></p>` : '') +
-        `<p>구독을 해지하려면 사이트에서 이 이메일 주소(${to})만 입력하면 됩니다.</p>`,
+        (siteUrl ? `<p>사이트 바로가기: <a href="${siteUrl}">${siteUrl}</a></p>` : ''),
       attachments: [{ filename: 'bond-yields-5y.xlsx', content: buffer }],
     })
   } catch (err) {
