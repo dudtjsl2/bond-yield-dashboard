@@ -27,43 +27,17 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const dateOverride = searchParams.get('date')
   const dateYYYYMMDD = dateOverride && /^\d{8}$/.test(dateOverride) ? dateOverride : todayKstYYYYMMDD()
+  const isoDate = `${dateYYYYMMDD.slice(0, 4)}-${dateYYYYMMDD.slice(4, 6)}-${dateYYYYMMDD.slice(6, 8)}`
   const supabase = getSupabaseAdmin()
 
   const updated: string[] = []
   const skipped: string[] = []
-
-  for (const instrument of INSTRUMENTS) {
-    try {
-      const result = await fetchEcosRate(instrument, dateYYYYMMDD)
-      if (!result) {
-        skipped.push(instrument.code)
-        continue
-      }
-
-      const isoDate = `${result.date.slice(0, 4)}-${result.date.slice(4, 6)}-${result.date.slice(6, 8)}`
-      const { error } = await supabase
-        .from('bond_yields')
-        .upsert({ date: isoDate, instrument: instrument.code, yield_pct: result.value }, { onConflict: 'date,instrument' })
-
-      if (error) {
-        skipped.push(instrument.code)
-        continue
-      }
-      updated.push(instrument.code)
-    } catch {
-      skipped.push(instrument.code)
-      continue
-    }
-  }
-
-  const isoDate = `${dateYYYYMMDD.slice(0, 4)}-${dateYYYYMMDD.slice(4, 6)}-${dateYYYYMMDD.slice(6, 8)}`
   let summaryStatus: 'ok' | 'failed' | 'skipped-incomplete' | 'already-done' = 'skipped-incomplete'
   let digestStatus: 'triggered' | 'failed' | 'skipped-incomplete' | 'skipped-no-url' | 'already-done' =
     'skipped-incomplete'
 
-  // 이 cron은 16:30~17:30 KST 사이 매분 재시도된다(vercel.json 참고). ECOS가 그날치 데이터를
-  // 전부 내려주기 전까지는 요약·다이제스트를 건너뛰고, daily_summary에 그날 행이 이미 있으면
-  // (=한 번 완결 처리됨) 매분 재실행되어도 요약 재생성·이메일 재발송을 하지 않는다.
+  // 이 cron은 16:30~17:30 KST 사이 매분 재시도된다(vercel.json 참고). daily_summary에 그날
+  // 행이 이미 있으면(=한 번 완결 처리됨) ECOS 조회를 아예 하지 않고 즉시 종료한다.
   const { data: existingSummaryRows } = await supabase
     .from('daily_summary')
     .select('date')
@@ -73,10 +47,46 @@ export async function GET(req: Request) {
     summaryStatus = 'already-done'
     digestStatus = 'already-done'
   } else {
-    const { data: todayRows } = await supabase
+    // 이미 오늘치가 확인된 지표는 다시 조회하지 않고, 아직 안 들어온 지표만 ECOS에 조회한다.
+    const { data: rowsBeforeFetch } = await supabase
       .from('bond_yields')
       .select('instrument, yield_pct')
       .eq('date', isoDate)
+
+    const confirmedCodes = new Set((rowsBeforeFetch ?? []).map((r) => r.instrument))
+    const instrumentsToFetch = INSTRUMENTS.filter((i) => !confirmedCodes.has(i.code))
+
+    for (const instrument of instrumentsToFetch) {
+      try {
+        const result = await fetchEcosRate(instrument, dateYYYYMMDD)
+        if (!result) {
+          skipped.push(instrument.code)
+          continue
+        }
+
+        const resultIsoDate = `${result.date.slice(0, 4)}-${result.date.slice(4, 6)}-${result.date.slice(6, 8)}`
+        const { error } = await supabase
+          .from('bond_yields')
+          .upsert(
+            { date: resultIsoDate, instrument: instrument.code, yield_pct: result.value },
+            { onConflict: 'date,instrument' }
+          )
+
+        if (error) {
+          skipped.push(instrument.code)
+          continue
+        }
+        updated.push(instrument.code)
+      } catch {
+        skipped.push(instrument.code)
+        continue
+      }
+    }
+
+    const { data: todayRows } =
+      instrumentsToFetch.length > 0
+        ? await supabase.from('bond_yields').select('instrument, yield_pct').eq('date', isoDate)
+        : { data: rowsBeforeFetch }
 
     const isComplete = (todayRows ?? []).length >= INSTRUMENTS.length
 
