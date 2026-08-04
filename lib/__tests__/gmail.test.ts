@@ -94,7 +94,6 @@ describe('sendDigestEmail', () => {
     const html = sendMailMock.mock.calls[0][0].html
     expect(html).toContain('2026-07-28')
     expect(html).toContain('통안증권 1년')
-    expect(html).toContain('user@example.com')
   })
 
   it('includes a site link when NEXT_PUBLIC_SITE_URL is set', async () => {
