@@ -81,19 +81,6 @@ export async function getRateSeries(instrumentCodes: string[], period: Period) {
   return allRows
 }
 
-export async function getLatestSummary() {
-  const supabase = getSupabaseAdmin()
-  const { data, error } = await supabase
-    .from('daily_summary')
-    .select('date, summary_text')
-    .order('date', { ascending: false })
-    .limit(1)
-    .single()
-
-  if (error) return null
-  return data
-}
-
 export async function getLastUpdatedAt(): Promise<string | null> {
   const supabase = getSupabaseAdmin()
   const { data, error } = await supabase
