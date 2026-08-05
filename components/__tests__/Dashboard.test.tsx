@@ -29,7 +29,6 @@ describe('Dashboard refetch error handling', () => {
       <Dashboard
         instruments={instruments}
         initialRows={initialRows}
-        initialSummary={null}
         initialLastUpdated={null}
       />
     )
@@ -51,7 +50,6 @@ describe('Dashboard refetch error handling', () => {
       <Dashboard
         instruments={instruments}
         initialRows={initialRows}
-        initialSummary={null}
         initialLastUpdated={null}
       />
     )
@@ -83,7 +81,6 @@ describe('Dashboard refetch error handling', () => {
       <Dashboard
         instruments={instruments}
         initialRows={initialRows}
-        initialSummary={null}
         initialLastUpdated={null}
       />
     )

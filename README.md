@@ -10,7 +10,6 @@ Vercel 프로젝트의 Settings → Environment Variables에 아래 값을 모�
 | NEXT_PUBLIC_SUPABASE_ANON_KEY | Supabase anon key |
 | SUPABASE_SERVICE_ROLE_KEY | Supabase service role key (절대 외부 노출 금지) |
 | ECOS_API_KEY | 한국은행 ECOS API 인증키 |
-| OPENROUTER_API_KEY | OpenRouter API 키 |
 | GMAIL_USER | 발신용 구글 이메일 주소 |
 | GMAIL_APP_PASSWORD | 구글 계정 2단계 인증 켠 뒤 발급한 앱 비밀번호 (일반 로그인 비밀번호 아님) |
 | CRON_SECRET | 임의의 긴 랜덤 문자열 (Cron 요청 인증용) |
@@ -29,7 +28,7 @@ Vercel 프로젝트의 Settings → Environment Variables에 아래 값을 모�
 
 > **구독 확인은 이메일 + 6자리 코드, 해지는 이메일만으로 처리됩니다.** 회사 메일 보안 게이트웨이가 링크를 차단해도 항상 동작합니다. 해지는 악용해도 스팸을 줄이는 방향이라 코드 없이 이메일만 확인합니다. `confirm_token` 컬럼은 과거 링크 방식의 잔재로 더 이상 사용되지 않지만 스키마 호환을 위해 계속 채워집니다.
 
-> **`update-rates` cron은 매일 16:45(KST) 딱 1번만 실행됩니다** (`vercel.json`, Vercel Hobby 플랜은 cron을 하루 1회로 제한하므로 재시도 불가). 그 시점에 ECOS에서 확인되는 지표가 하나라도 있으면 그 데이터로 AI 요약 생성과 이메일 다이제스트 발송을 트리거합니다(`daily_summary`에 그날 행 생성). 아직 안 올라온 지표는 그냥 스킵되고, 다음날 다시 시도됩니다. 같은 날짜에 수동으로 다시 호출해도(`daily_summary`에 이미 행이 있으면) 중복 발송되지 않습니다.
+> **`update-rates` cron은 매일 16:45(KST) 딱 1번만 실행됩니다** (`vercel.json`, Vercel Hobby 플랜은 cron을 하루 1회로 제한하므로 재시도 불가). 그 시점에 ECOS에서 확인되는 지표가 하나라도 있으면 그 데이터로 이메일 다이제스트 발송을 트리거합니다. 아직 안 올라온 지표는 그냥 스킵되고, 다음날 다시 시도됩니다. 이 엔드포인트를 같은 날짜에 수동으로 여러 번 호출하면 다이제스트가 중복 발송될 수 있으니 주의해주세요.
 
 > **`holidays` 테이블은 배포 직후 비어 있습니다.** 관리자가 Supabase 테이블 편집기에서 한국 공휴일 데이터를 직접 입력하기 전까지는, 반복 이메일 다이제스트 cron이 공휴일에도 계속 발송됩니다.
 

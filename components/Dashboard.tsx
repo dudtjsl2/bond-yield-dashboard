@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { InstrumentSelector } from './InstrumentSelector'
 import { PeriodSelector } from './PeriodSelector'
 import { TrendChart } from './TrendChart'
-import { SummaryBox } from './SummaryBox'
 import { ThemeToggle } from './ThemeToggle'
 import { ExportPanel } from './ExportPanel'
 import { SubscribePanel } from './SubscribePanel'
@@ -16,11 +15,10 @@ type Row = { date: string; instrument: string; yield_pct: number }
 type Props = {
   instruments: Instrument[]
   initialRows: Row[]
-  initialSummary: { date: string; summary_text: string } | null
   initialLastUpdated: string | null
 }
 
-export function Dashboard({ instruments, initialRows, initialSummary, initialLastUpdated }: Props) {
+export function Dashboard({ instruments, initialRows, initialLastUpdated }: Props) {
   const [selected, setSelected] = useState<string[]>(instruments.map((i) => i.code))
   const [period, setPeriod] = useState<Period>('5y')
   const [rows, setRows] = useState<Row[]>(initialRows)
@@ -75,15 +73,13 @@ export function Dashboard({ instruments, initialRows, initialSummary, initialLas
         {error ? <p className="mt-2 text-sm text-red-500">{error}</p> : null}
       </div>
 
-      <SummaryBox summary={initialSummary} />
-
       <ExportPanel selectedInstruments={selected} period={period} />
 
       <SubscribePanel />
 
       <div className="px-1 py-2">
         <p className="text-xs text-muted">마지막 업데이트: {initialLastUpdated ?? '아직 없음'}</p>
-        <p className="text-xs text-muted">자료 출처: 한국은행 경제통계시스템(ECOS) · 해설: AI(OpenRouter) 자동 생성</p>
+        <p className="text-xs text-muted">자료 출처: 한국은행 경제통계시스템(ECOS)</p>
       </div>
     </div>
   )
