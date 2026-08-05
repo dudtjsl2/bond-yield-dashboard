@@ -88,7 +88,7 @@ export function SubscribePanel() {
   return (
     <div className="rounded-2xl bg-card p-5 shadow-sm">
       <h2 className="mb-1 text-sm font-semibold text-muted">매영업일 자동 발송 구독</h2>
-      <p className="mb-3 text-[13px] text-muted">주말·공휴일을 제외한 매영업일 오후 5시에 전 지표 데이터를 이메일로 보내드려요.</p>
+      <p className="mb-3 text-[13px] text-muted">주말·공휴일을 제외한 매영업일 오후 4시 45분에 전 지표 데이터를 이메일로 보내드려요.</p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <label htmlFor="subscribe-email" className="sr-only">
           이메일 주소
