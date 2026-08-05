@@ -32,12 +32,12 @@ export async function GET(req: Request) {
 
   const updated: string[] = []
   const skipped: string[] = []
-  let summaryStatus: 'ok' | 'failed' | 'skipped-incomplete' | 'already-done' = 'skipped-incomplete'
-  let digestStatus: 'triggered' | 'failed' | 'skipped-incomplete' | 'skipped-no-url' | 'already-done' =
-    'skipped-incomplete'
+  let summaryStatus: 'ok' | 'failed' | 'skipped-no-data' | 'already-done' = 'skipped-no-data'
+  let digestStatus: 'triggered' | 'failed' | 'skipped-no-data' | 'skipped-no-url' | 'already-done' =
+    'skipped-no-data'
 
-  // 이 cron은 16:30~17:30 KST 사이 매분 재시도된다(vercel.json 참고). daily_summary에 그날
-  // 행이 이미 있으면(=한 번 완결 처리됨) ECOS 조회를 아예 하지 않고 즉시 종료한다.
+  // Vercel Hobby 플랜은 cron을 하루 1회만 실행하므로(재시도 불가), daily_summary에 그날 행이
+  // 이미 있으면(=수동 재실행 등으로 이미 처리됨) ECOS 조회 없이 즉시 종료해 중복 처리를 막는다.
   const { data: existingSummaryRows } = await supabase
     .from('daily_summary')
     .select('date')
@@ -88,9 +88,9 @@ export async function GET(req: Request) {
         ? await supabase.from('bond_yields').select('instrument, yield_pct').eq('date', isoDate)
         : { data: rowsBeforeFetch }
 
-    const isComplete = (todayRows ?? []).length >= INSTRUMENTS.length
+    const hasAnyData = (todayRows ?? []).length > 0
 
-    if (isComplete) {
+    if (hasAnyData) {
       try {
         // Find the single most recent prior date first, then fetch all rows for
         // exactly that date. Avoids mixing rows from more than one calendar
