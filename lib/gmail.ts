@@ -70,7 +70,7 @@ export async function sendConfirmationEmail(to: string, code: string): Promise<v
       from: process.env.GMAIL_USER,
       subject: '[국고채 대시보드] 구독 확인',
       html:
-        `<p>대시보드 사이트에서 아래 이메일 주소와 확인 코드를 입력하면 매영업일 오후 5시 자동 발송 구독이 확정됩니다.</p>` +
+        `<p>대시보드 사이트에서 아래 이메일 주소와 확인 코드를 입력하면 매영업일 오후 4시 45분 자동 발송 구독이 확정됩니다.</p>` +
         `<p>이메일: ${to}</p>` +
         `<p style="font-size:20px;font-weight:bold;letter-spacing:2px;">${code}</p>`,
     })

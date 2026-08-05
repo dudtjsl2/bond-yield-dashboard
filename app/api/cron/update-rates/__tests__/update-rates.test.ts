@@ -111,11 +111,11 @@ describe('GET /api/cron/update-rates', () => {
     })
     const res = await GET(req)
     const body = await res.json()
-    expect(['ok', 'failed', 'skipped-incomplete', 'already-done']).toContain(body.summaryStatus)
+    expect(['ok', 'failed', 'skipped-no-data', 'already-done']).toContain(body.summaryStatus)
   })
 
-  it('does not generate a summary yet while today\'s data is still incomplete (retry-until-complete)', async () => {
-    // bondYieldsEqMock (today rows) 기본값은 빈 배열 → INSTRUMENTS 전체가 아직 안 모인 상태
+  it('does not generate a summary when no instrument has a row for today yet', async () => {
+    // bondYieldsEqMock (today rows) 기본값은 빈 배열 → 오늘치 데이터가 하나도 없는 상태
     const { GET } = await import('../route')
     const req = new Request('http://localhost/api/cron/update-rates', {
       headers: { Authorization: 'Bearer test-secret' },
@@ -123,10 +123,28 @@ describe('GET /api/cron/update-rates', () => {
     const res = await GET(req)
     const body = await res.json()
 
-    expect(body.summaryStatus).toBe('skipped-incomplete')
-    expect(body.digestStatus).toBe('skipped-incomplete')
+    expect(body.summaryStatus).toBe('skipped-no-data')
+    expect(body.digestStatus).toBe('skipped-no-data')
     expect(generateDailySummaryMock).not.toHaveBeenCalled()
     expect(dailySummaryUpsertMock).not.toHaveBeenCalled()
+  })
+
+  it('generates the summary from whatever data is available, even if some instruments are still missing (Hobby 플랜: 재시도 없음)', async () => {
+    const [, ...partialRows] = INSTRUMENTS // 하나는 아직 없고 나머지는 있는 상태
+    bondYieldsEqMock.mockResolvedValue({
+      data: partialRows.map((i) => ({ instrument: i.code, yield_pct: 3.0 })),
+      error: null,
+    })
+
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(body.summaryStatus).toBe('ok')
+    expect(generateDailySummaryMock).toHaveBeenCalled()
   })
 
   it('generates the summary once every instrument has a row for today, without calling ECOS again', async () => {
