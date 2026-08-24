@@ -17,7 +17,7 @@ Vercel 프로젝트의 Settings → Environment Variables에 아래 값을 모�
 
 ## 배포 절차
 
-1. Supabase 프로젝트에서 `supabase/migrations/0001_init.sql`, `0002_email_subscribers.sql`, `0003_subscriber_short_code.sql`을 순서대로 SQL Editor로 실행
+1. Supabase 프로젝트에서 `supabase/migrations/0001_init.sql`, `0002_email_subscribers.sql`, `0003_subscriber_short_code.sql`, `0004_digest_dispatch_log.sql`을 순서대로 SQL Editor로 실행
 2. GitHub 저장소에 이 코드를 push
 3. Vercel에서 해당 저장소를 Import
 4. 위 표의 환경 변수를 모두 등록
@@ -28,7 +28,7 @@ Vercel 프로젝트의 Settings → Environment Variables에 아래 값을 모�
 
 > **구독 확인은 이메일 + 6자리 코드, 해지는 이메일만으로 처리됩니다.** 회사 메일 보안 게이트웨이가 링크를 차단해도 항상 동작합니다. 해지는 악용해도 스팸을 줄이는 방향이라 코드 없이 이메일만 확인합니다. `confirm_token` 컬럼은 과거 링크 방식의 잔재로 더 이상 사용되지 않지만 스키마 호환을 위해 계속 채워집니다.
 
-> **`update-rates` cron은 매일 16:45(KST) 딱 1번만 실행됩니다** (`vercel.json`, Vercel Hobby 플랜은 cron을 하루 1회로 제한하므로 재시도 불가). 그 시점에 ECOS에서 확인되는 지표가 하나라도 있으면 그 데이터로 이메일 다이제스트 발송을 트리거합니다. 아직 안 올라온 지표는 그냥 스킵되고, 다음날 다시 시도됩니다. 이 엔드포인트를 같은 날짜에 수동으로 여러 번 호출하면 다이제스트가 중복 발송될 수 있으니 주의해주세요.
+> **`update-rates` cron은 매일 KST 16:10에 Vercel에서 1번 실행됩니다** (`vercel.json`의 `"10 7 * * *"`는 UTC 기준이라 KST로는 16:10, Vercel Hobby 플랜은 cron을 하루 1회로 제한). 이메일 다이제스트는 `INSTRUMENTS` 전 지표가 그날치로 확인됐을 때만 발송을 트리거합니다(`skipped-incomplete`). ECOS 갱신이 늦어 지표가 아직 덜 채워졌다면, GitHub Actions 워크플로(`.github/workflows/retry-update-rates.yml`)가 KST 16:15~18:55 동안 5분 간격으로 같은 라우트를 재호출해 전부 확인될 때까지 재시도합니다. 이 워크플로가 동작하려면 저장소 Settings → Secrets and variables → Actions에 `CRON_SECRET`(Vercel과 동일한 값)과 `SITE_URL`(배포된 사이트 주소, 예: `https://your-app.vercel.app`)을 등록해야 합니다. 발송 직전 `digest_dispatch_log` 테이블에 날짜를 원자적으로 선점하므로, 이 엔드포인트가 여러 번 호출돼도(재시도, 수동 호출 포함) 다이제스트는 하루 최대 1번만 나갑니다.
 
 > **`holidays` 테이블은 배포 직후 비어 있습니다.** 관리자가 Supabase 테이블 편집기에서 한국 공휴일 데이터를 직접 입력하기 전까지는, 반복 이메일 다이제스트 cron이 공휴일에도 계속 발송됩니다.
 

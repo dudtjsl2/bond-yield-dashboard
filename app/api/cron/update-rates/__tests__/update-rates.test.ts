@@ -9,7 +9,20 @@ const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
 const ltMock = vi.fn().mockReturnValue({ order: orderMock })
 const bondYieldsEqMock = vi.fn().mockResolvedValue({ data: [], error: null })
 const bondYieldsSelectMock = vi.fn().mockReturnValue({ eq: bondYieldsEqMock, lt: ltMock })
-const fromMock = vi.fn().mockReturnValue({ upsert: upsertMock, select: bondYieldsSelectMock })
+
+// digest_dispatch_log: upsert(...).select() -> 클레임 성공 시 삽입된 행 1개 반환(기본값),
+// ignoreDuplicates로 인해 이미 선점된 경우 빈 배열을 반환하도록 테스트별로 override.
+const digestClaimSelectMock = vi.fn().mockResolvedValue({ data: [{ date: '2026-07-27' }], error: null })
+const digestClaimUpsertMock = vi.fn().mockReturnValue({ select: digestClaimSelectMock })
+const digestClaimDeleteEqMock = vi.fn().mockResolvedValue({ error: null })
+const digestClaimDeleteMock = vi.fn().mockReturnValue({ eq: digestClaimDeleteEqMock })
+
+const fromMock = vi.fn((table: string) => {
+  if (table === 'digest_dispatch_log') {
+    return { upsert: digestClaimUpsertMock, delete: digestClaimDeleteMock }
+  }
+  return { upsert: upsertMock, select: bondYieldsSelectMock }
+})
 
 vi.mock('@/lib/supabase', () => ({
   getSupabaseAdmin: () => ({ from: fromMock }),
@@ -37,6 +50,10 @@ describe('GET /api/cron/update-rates', () => {
     ltMock.mockClear()
     orderMock.mockClear()
     limitMock.mockClear()
+    digestClaimSelectMock.mockClear().mockResolvedValue({ data: [{ date: '2026-07-27' }], error: null })
+    digestClaimUpsertMock.mockClear()
+    digestClaimDeleteEqMock.mockClear().mockResolvedValue({ error: null })
+    digestClaimDeleteMock.mockClear()
     vi.mocked(fetchEcosRateMock).mockClear()
     delete process.env.NEXT_PUBLIC_SITE_URL
     delete process.env.VERCEL_URL
@@ -95,7 +112,14 @@ describe('GET /api/cron/update-rates', () => {
     })
     const res = await GET(req)
     const body = await res.json()
-    expect(['triggered', 'failed', 'skipped-no-data', 'skipped-no-url']).toContain(body.digestStatus)
+    expect([
+      'triggered',
+      'failed',
+      'skipped-no-data',
+      'skipped-incomplete',
+      'skipped-no-url',
+      'skipped-already-sent',
+    ]).toContain(body.digestStatus)
   })
 
   it('skips the digest trigger when no instrument has a row for today', async () => {
@@ -111,12 +135,30 @@ describe('GET /api/cron/update-rates', () => {
     expect(body.digestStatus).toBe('skipped-no-data')
   })
 
-  it('triggers the digest from whatever data is available, even if some instruments are still missing (Hobby 플랜: 재시도 없음)', async () => {
-    const [, ...partialRows] = INSTRUMENTS // 하나는 아직 없고 나머지는 있는 상태
+  it('does not trigger the digest while some instruments (e.g. CD금리) are still missing for today', async () => {
+    const [, ...partialRows] = INSTRUMENTS // 하나(CD금리 등)는 아직 없고 나머지는 있는 상태
     bondYieldsEqMock.mockResolvedValue({
       data: partialRows.map((i) => ({ instrument: i.code, yield_pct: 3.0 })),
       error: null,
     })
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://example.vercel.app'
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(body.digestStatus).toBe('skipped-incomplete')
+    expect(fetchMock).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
+  it('triggers the digest once every instrument has a row for today', async () => {
+    bondYieldsEqMock.mockResolvedValue({ data: allInstrumentsRows(), error: null })
     process.env.NEXT_PUBLIC_SITE_URL = 'https://example.vercel.app'
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
 
@@ -128,6 +170,44 @@ describe('GET /api/cron/update-rates', () => {
     const body = await res.json()
 
     expect(body.digestStatus).toBe('triggered')
+    expect(fromMock).toHaveBeenCalledWith('digest_dispatch_log')
+    vi.unstubAllGlobals()
+  })
+
+  it('does not re-send when the digest for today was already dispatched (dedup via digest_dispatch_log)', async () => {
+    bondYieldsEqMock.mockResolvedValue({ data: allInstrumentsRows(), error: null })
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://example.vercel.app'
+    digestClaimSelectMock.mockResolvedValue({ data: [], error: null }) // ignoreDuplicates로 인해 이미 선점된 날짜는 빈 배열
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(body.digestStatus).toBe('skipped-already-sent')
+    expect(fetchMock).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
+  it('releases the digest_dispatch_log claim so a retry can re-attempt when the send-digest call fails', async () => {
+    bondYieldsEqMock.mockResolvedValue({ data: allInstrumentsRows(), error: null })
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://example.vercel.app'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+
+    const { GET } = await import('../route')
+    const req = new Request('http://localhost/api/cron/update-rates', {
+      headers: { Authorization: 'Bearer test-secret' },
+    })
+    const res = await GET(req)
+    const body = await res.json()
+
+    expect(body.digestStatus).toBe('failed')
+    expect(digestClaimDeleteMock).toHaveBeenCalled()
+    expect(digestClaimDeleteEqMock).toHaveBeenCalledWith('date', expect.any(String))
     vi.unstubAllGlobals()
   })
 

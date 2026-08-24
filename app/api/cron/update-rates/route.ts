@@ -72,22 +72,53 @@ export async function GET(req: Request) {
       ? await supabase.from('bond_yields').select('instrument, yield_pct').eq('date', isoDate)
       : { data: rowsBeforeFetch }
 
-  const hasAnyData = (todayRows ?? []).length > 0
-  let digestStatus: 'triggered' | 'failed' | 'skipped-no-data' | 'skipped-no-url' = 'skipped-no-data'
+  const confirmedCodesAfterFetch = new Set((todayRows ?? []).map((r) => r.instrument))
+  const allConfirmed = INSTRUMENTS.every((i) => confirmedCodesAfterFetch.has(i.code))
 
-  if (hasAnyData) {
+  let digestStatus:
+    | 'triggered'
+    | 'failed'
+    | 'skipped-no-data'
+    | 'skipped-incomplete'
+    | 'skipped-no-url'
+    | 'skipped-already-sent' = confirmedCodesAfterFetch.size === 0 ? 'skipped-no-data' : 'skipped-incomplete'
+
+  // 지표 전부(INSTRUMENTS 전체)가 오늘치로 확인됐을 때만 발송을 시도한다.
+  // 일부(예: CD금리)만 아직 없는 상태에서 발송하면 부분 발송 이메일이 나가므로,
+  // 남은 지표는 5분 간격 GitHub Actions 재시도가 이 라우트를 다시 호출해 채운다.
+  if (allConfirmed) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
     if (!siteUrl) {
       digestStatus = 'skipped-no-url'
     } else {
-      try {
-        const res = await fetch(`${siteUrl}/api/cron/send-digest`, {
-          headers: { Authorization: `Bearer ${secret}` },
-        })
-        digestStatus = res.ok ? 'triggered' : 'failed'
-      } catch (err) {
-        console.error('다이제스트 이메일 발송 트리거 실패:', err)
+      // date를 원자적으로 선점해 같은 날짜에 두 번 발송되는 것을 막는다.
+      // 재시도 중복 호출이나 Vercel 크론과 GitHub Actions 재시도가 겹쳐도 하나만 통과한다.
+      const { data: claimRows, error: claimError } = await supabase
+        .from('digest_dispatch_log')
+        .upsert({ date: isoDate }, { onConflict: 'date', ignoreDuplicates: true })
+        .select()
+
+      if (claimError) {
+        console.error('다이제스트 발송 클레임 실패:', claimError)
         digestStatus = 'failed'
+      } else if (!claimRows || claimRows.length === 0) {
+        digestStatus = 'skipped-already-sent'
+      } else {
+        try {
+          const res = await fetch(`${siteUrl}/api/cron/send-digest`, {
+            headers: { Authorization: `Bearer ${secret}` },
+          })
+          if (res.ok) {
+            digestStatus = 'triggered'
+          } else {
+            digestStatus = 'failed'
+            await supabase.from('digest_dispatch_log').delete().eq('date', isoDate)
+          }
+        } catch (err) {
+          console.error('다이제스트 이메일 발송 트리거 실패:', err)
+          digestStatus = 'failed'
+          await supabase.from('digest_dispatch_log').delete().eq('date', isoDate)
+        }
       }
     }
   }

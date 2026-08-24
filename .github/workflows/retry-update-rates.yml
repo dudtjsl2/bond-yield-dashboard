@@ -1,0 +1,29 @@
+name: Retry update-rates (지표 미확인 시 5분 간격 재시도)
+
+# Vercel Hobby 플랜은 크론이 하루 1회(vercel.json "10 7 * * *" = UTC 07:10 = KST 16:10)뿐이라
+# 재시도가 없다. ECOS가 일부 지표(예: CD금리)를 늦게 갱신하면 /api/cron/update-rates가 그
+# 지표만 skip한 채 끝나므로, 아래 워크플로가 KST 16:15~18:55(UTC 07:15~09:55) 동안 5분 간격으로
+# 같은 라우트를 재호출해 지표가 전부 확인될 때까지 다이제스트 발송을 재시도한다.
+# (route.ts는 이미 확인된 지표는 다시 조회하지 않고, 전부 확인됐을 때만 발송을 트리거한다.)
+# GitHub Actions의 schedule cron은 UTC 기준.
+on:
+  schedule:
+    - cron: '15-59/5 7 * * *' # UTC 07:15-07:55 = KST 16:15-16:55
+    - cron: '*/5 8 * * *' # UTC 08:00-08:55 = KST 17:00-17:55
+    - cron: '0-55/5 9 * * *' # UTC 09:00-09:55 = KST 18:00-18:55
+  workflow_dispatch: {}
+
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /api/cron/update-rates
+        run: |
+          status=$(curl -sS -o /tmp/body.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.SITE_URL }}/api/cron/update-rates")
+          echo "HTTP status: $status"
+          cat /tmp/body.json
+          if [ "$status" -ge 400 ]; then
+            exit 1
+          fi
