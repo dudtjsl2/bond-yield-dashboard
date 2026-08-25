@@ -1,0 +1,28 @@
+name: Manual ECOS fetch (일회성 수동 조회, 작업 후 삭제 예정)
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_key:
+        description: 'ECOS_API_KEY'
+        required: true
+      date:
+        description: 'YYYYMMDD'
+        required: true
+      item_codes:
+        description: 'comma-separated ecosItemCode1 list'
+        required: true
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch ECOS rates
+        run: |
+          echo "::add-mask::${{ inputs.api_key }}"
+          IFS=',' read -ra CODES <<< "${{ inputs.item_codes }}"
+          for CODE in "${CODES[@]}"; do
+            echo "=== $CODE ==="
+            curl -sS "https://ecos.bok.or.kr/api/StatisticSearch/${{ inputs.api_key }}/json/kr/1/1/817Y002/D/${{ inputs.date }}/${{ inputs.date }}/${CODE}"
+            echo
+          done
