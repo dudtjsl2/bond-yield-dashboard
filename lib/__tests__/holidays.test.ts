@@ -18,7 +18,7 @@ describe('isHoliday', () => {
     maybeSingleMock.mockResolvedValue({ data: { date: '2026-09-28' }, error: null })
     const { isHoliday } = await import('../holidays')
     expect(await isHoliday('2026-09-28')).toBe(true)
-    expect(fromMock).toHaveBeenCalledWith('holidays')
+    expect(fromMock).toHaveBeenCalledWith('kr_holidays')
   })
 
   it('returns false when the date is not a holiday', async () => {
