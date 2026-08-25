@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from './supabase'
 export async function isHoliday(isoDate: string): Promise<boolean> {
   const supabase = getSupabaseAdmin()
   const { data, error } = await supabase
-    .from('holidays')
+    .from('kr_holidays')
     .select('date')
     .eq('date', isoDate)
     .maybeSingle()
